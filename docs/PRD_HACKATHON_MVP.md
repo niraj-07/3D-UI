@@ -45,7 +45,7 @@ The demo should make clear why the two perspectives matter: **the desktop offers
 | **Novelty & technical contribution** | **35%** | Clear delegation mechanism, proposal vs. committed state, why the interaction is useful |
 | **Technical execution** | **25%** | Reliable VR + desktop connection, correct state updates, smooth repeatable workflow |
 | **Presentation & clarity** | **20%** | Understandable use case and 3–5 minute video showing the real system and key code |
-| **Collaboration & team dynamics** | **20%** | Meaningful contributions from all four members; shared understanding of the code |
+| **Collaboration & team dynamics** | **20%** | Meaningful contributions from both developers; shared understanding of the code |
 
 **Submission:** Repository link and **3–5 minute demo video**, including a short explanation of important code, via the [submission form](https://forms.cloud.microsoft/r/0hwfGAFkXA) by **Monday, November 9 at noon**. Commit throughout the event; finalists should be ready for a short team Q&A.
 
