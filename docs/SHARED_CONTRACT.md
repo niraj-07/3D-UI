@@ -65,6 +65,14 @@ Subscribe to `StateChanged`, then read `Current` to draw the initial view. `Stat
 
 Task 4 owns serialization and transport. Capture `Current.TaskId` when sending task-specific requests and include it in the network message. The host must reject stale IDs and issue a new ID for every delegation, even when the same part is selected again. The UI does not generate IDs or pass client roles as proof of permission.
 
+## Delegation session setup
+
+`TaskBubble.Networking.DelegationSession` implements the shared interface. During scene integration, add one scene object with `NetworkObject` and `DelegationSession`, assign the scene's `TaskBubbleConnection` and CAD assembly root, and use the same scene on both peers. Keep the session enabled before starting the connection so Netcode spawns it with the scene. It registers the assembly on network spawn; load the assembly before connecting.
+
+Step 2 implements `RequestDelegation`: the host checks the RPC sender's assigned VR role, Idle state, registered part, and starting rotation. It publishes a server-written snapshot with a nonzero task ID and zero angle. Joining clients receive the current snapshot too. Rejected requests notify only their caller. No request moves the real part.
+
+The remaining interface methods currently report that they are not implemented. Proposal updates and submission follow in the next steps; accept/reject/reset belong to task 10. Clearing the host's unfinished task when VR disconnects is also still pending. This component has not yet been added to the connection scene or connected to UI.
+
 Task 10 owns committed poses. Save the original demo rotation separately when the assembly loads: it is not necessarily the same as `StartingLocalRotation` after an accepted edit and another delegation. Synchronize accepted/reset poses before notifying views of the resulting state. Clear the snapshot to `DelegationSnapshot.Idle` on reset.
 
 Keep all proposal calculations in local space, with the same CAD hierarchy on both clients. Shared types do not depend on Netcode, XR, or a UI framework.

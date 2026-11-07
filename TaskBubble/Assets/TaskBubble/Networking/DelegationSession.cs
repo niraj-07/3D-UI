@@ -1,0 +1,131 @@
+using System;
+using TaskBubble.Shared;
+using Unity.Netcode;
+using UnityEngine;
+
+namespace TaskBubble.Networking
+{
+    [DisallowMultipleComponent]
+    [RequireComponent(typeof(NetworkObject))]
+    public sealed class DelegationSession : NetworkBehaviour, IDelegationSession
+    {
+        [SerializeField] private TaskBubbleConnection connection;
+        [SerializeField] private Transform assemblyRoot;
+
+        private readonly EditablePartRegistry parts = new EditablePartRegistry();
+        private readonly NetworkVariable<TaskState> task = new NetworkVariable<TaskState>(
+            TaskState.From(DelegationSnapshot.Idle));
+        private uint lastTaskId;
+
+        public DelegationSnapshot Current { get; private set; } = DelegationSnapshot.Idle;
+        public event Action<DelegationSnapshot> StateChanged;
+        public event Action<string> OperationRejected;
+
+        public override void OnNetworkSpawn()
+        {
+            parts.Rebuild(assemblyRoot);
+            task.OnValueChanged += OnTaskChanged;
+            Publish(task.Value);
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            task.OnValueChanged -= OnTaskChanged;
+            Current = DelegationSnapshot.Idle;
+            StateChanged?.Invoke(Current);
+        }
+
+        public void RequestDelegation(string partId)
+        {
+            if (!IsSpawned || connection == null || connection.State != ConnectionState.Connected)
+            {
+                OperationRejected?.Invoke("Connect before requesting an edit.");
+                return;
+            }
+            RequestDelegationRpc(partId ?? "");
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void RequestDelegationRpc(string partId, RpcParams rpcParams = default)
+        {
+            ulong sender = rpcParams.Receive.SenderClientId;
+            string reason = null;
+            if (connection == null || !connection.TryGetRole(sender, out var role) || role != ParticipantRole.Vr)
+                reason = "Only the connected VR participant can request an edit.";
+            else if (task.Value.State != DelegationState.Idle)
+                reason = "An edit is already active.";
+            else if (!parts.IsReady)
+                reason = parts.Error;
+            else if (!parts.TryGet(partId, out var part))
+                reason = "The requested part is missing or has invalid settings.";
+            else if (!part.TryGetProposalLocalRotation(part.transform.localRotation, 0f, out var rotation))
+                reason = "The requested part has an invalid starting rotation.";
+            else if (lastTaskId == uint.MaxValue)
+                reason = "Task IDs are exhausted. Restart the session.";
+            else
+            {
+                task.Value = TaskState.From(new DelegationSnapshot(
+                    ++lastTaskId, partId, DelegationState.Requested, rotation, rotation, 0f));
+                return;
+            }
+
+            RejectOperationRpc(reason, RpcTarget.Single(sender, RpcTargetUse.Temp));
+        }
+
+        [Rpc(SendTo.SpecifiedInParams, InvokePermission = RpcInvokePermission.Server)]
+        private void RejectOperationRpc(string reason, RpcParams rpcParams = default)
+        {
+            OperationRejected?.Invoke(reason);
+        }
+
+        private void OnTaskChanged(TaskState previous, TaskState next) => Publish(next);
+
+        private void Publish(TaskState state)
+        {
+            Current = state.ToSnapshot();
+            StateChanged?.Invoke(Current);
+        }
+
+        // These operations are implemented in the following task steps.
+        public void UpdateProposal(float angleDegrees) => NotImplementedYet();
+        public void SubmitProposal() => NotImplementedYet();
+        public void AcceptProposal() => NotImplementedYet();
+        public void RejectProposal() => NotImplementedYet();
+        public void ResetTask() => NotImplementedYet();
+        private void NotImplementedYet() => OperationRejected?.Invoke("This operation is not implemented yet.");
+
+        private struct TaskState : INetworkSerializable, IEquatable<TaskState>
+        {
+            public uint TaskId;
+            public string PartId;
+            public DelegationState State;
+            public Quaternion StartingRotation;
+            public Quaternion ProposalRotation;
+            public float Angle;
+
+            public static TaskState From(DelegationSnapshot snapshot) => new TaskState
+            {
+                TaskId = snapshot.TaskId, PartId = snapshot.PartId, State = snapshot.State,
+                StartingRotation = snapshot.StartingLocalRotation,
+                ProposalRotation = snapshot.ProposalLocalRotation, Angle = snapshot.ProposalAngleDegrees
+            };
+
+            public DelegationSnapshot ToSnapshot() => new DelegationSnapshot(
+                TaskId, PartId ?? "", State, StartingRotation, ProposalRotation, Angle);
+
+            public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+            {
+                serializer.SerializeValue(ref TaskId);
+                serializer.SerializeValue(ref PartId);
+                serializer.SerializeValue(ref State);
+                serializer.SerializeValue(ref StartingRotation);
+                serializer.SerializeValue(ref ProposalRotation);
+                serializer.SerializeValue(ref Angle);
+            }
+
+            public bool Equals(TaskState other) => TaskId == other.TaskId && PartId == other.PartId &&
+                State == other.State && StartingRotation.Equals(other.StartingRotation) &&
+                ProposalRotation.Equals(other.ProposalRotation) && Angle.Equals(other.Angle);
+        }
+    }
+}
