@@ -16,15 +16,11 @@ public static class CreatePartGhost
         if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(materialPath) != null ||
             AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(prefabPath) != null)
             throw new InvalidOperationException("Ghost assets already exist; edit them instead.");
-        var shader = Shader.Find("Universal Render Pipeline/Unlit");
-        if (shader == null) throw new InvalidOperationException("URP Unlit shader is unavailable.");
+        var shader = Shader.Find("TaskBubble/Ghost");
+        if (shader == null) throw new InvalidOperationException("TaskBubble ghost shader is unavailable.");
         var material = new Material(shader) { name = "Ghost" };
         material.SetColor("_BaseColor", new Color(0.10f, 0.90f, 1f, 0.35f));
-        material.SetFloat("_Surface", 1f);
-        material.SetFloat("_Blend", 0f);
-        material.SetFloat("_AlphaClip", 0f);
-        material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
-        BaseShaderGUI.SetupMaterialBlendMode(material);
+        material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
         AssetDatabase.CreateAsset(material, materialPath);
 
         var previous = SceneManager.GetActiveScene();

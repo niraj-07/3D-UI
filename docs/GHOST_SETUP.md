@@ -2,6 +2,8 @@
 
 Prefab: `Assets/TaskBubble/Preview/PartGhost.prefab`. Its cyan transparent material is already assigned.
 
+The material uses `TaskBubble/Ghost`, a small URP unlit shader with alpha blending and no depth writes. A raster depth bias prevents striped z-fighting where real and proposed faces coincide. It does not move vertices or change the proposed transform. The shader includes Unity's stereo/instancing macros; headset rendering still needs hardware verification.
+
 `PartGhost.Show(editablePart, proposedLocalRotation)` creates mesh-only visuals at the proposed rotation. It keeps the real part's parent space, local position, scale, and child transforms, so it rotates around the same pivot. It returns false and hides the ghost for missing/invalid inputs or a part without static meshes.
 
 `Hide()` hides the copy without changing the real part. Repeated updates reuse the same visual hierarchy. Disabling the component removes that hierarchy.
