@@ -77,8 +77,16 @@ Step 4 implements `SubmitProposal`: the host requires the Desktop role, the curr
 
 When VR disconnects, the host clears Requested, Editing, or Review to Idle without moving the part. Both local views also clear when their network object despawns. The session clears its stored snapshot on server despawn so restarting it cannot revive an unfinished task. Its task ID counter stays monotonic while that session object exists, including across reconnects.
 
-Accept/reject/reset belong to task 10 and currently report that they are not implemented. This component has not yet been added to the connection scene or connected to UI.
+Task 10's first step implements `AcceptProposal`. The host requires the VR role, a matching task ID, and Review state. It rechecks the part and rotation settings against the reviewed proposal before committing. Only then do both peers apply the proposed local rotation and publish Accepted. Duplicate approvals, desktop approvals, stale IDs, and invalid parts leave the result unchanged.
 
-Task 10 owns committed poses. Save the original demo rotation separately when the assembly loads: it is not necessarily the same as `StartingLocalRotation` after an accepted edit and another delegation. Synchronize accepted/reset poses before notifying views of the resulting state. Clear the snapshot to `DelegationSnapshot.Idle` on reset.
+The MVP's one editable part has a separate server-written committed rotation. Rejoining clients receive it, and clearing or respawning the task session does not undo an accepted edit. Each peer applies the rotation before notifying its views of Accepted. Keep the same part ID and CAD hierarchy on both peers.
+
+Task 10's second step implements `RejectProposal`. The host requires the VR role, the current nonzero task ID, and Review state. Rejection publishes Rejected while retaining the reviewed values for feedback. It does not change either real part or the committed rotation, including an earlier accepted edit. Duplicate decisions and further adjustments are refused; Rejected stays visible until Reset.
+
+Task 10's final step implements `ResetTask`. The host requires the VR role and a matching task ID. Reset in Idle is a no-op. From an active or finished task, it restores the selected part's original demo rotation, updates the committed pose, and clears the public snapshot to Idle on both peers. Stale resets and unavailable parts leave state and poses unchanged. The reset update includes its restored pose so views observe the part restored before receiving Idle.
+
+All shared session methods are now implemented. This component has not yet been added to the connection scene or connected to UI; Accept, Reject, and Reset buttons are separate UI/integration work.
+
+The host captures valid original demo rotations at the first network spawn, before applying any saved committed pose, and keeps them for the session object's lifetime. Load the assembly before connecting and keep its IDs stable. Respawning the same session object does not recapture accepted rotations as original poses. `StartingLocalRotation` remains the current committed rotation at task creation, which may differ from the original demo rotation. Accepted and reset poses are applied before notifying views of the resulting state.
 
 Keep all proposal calculations in local space, with the same CAD hierarchy on both clients. Shared types do not depend on Netcode, XR, or a UI framework.
