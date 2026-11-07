@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TaskBubble.Desktop;
 
 public static class CreateDesktopPanel
 {
@@ -51,7 +52,9 @@ public static class CreateDesktopPanel
             layout.childForceExpandHeight = false;
 
             Text(card.transform, "Title", "Desktop editor", 28, 42).fontStyle = FontStyles.Bold;
-            Text(card.transform, "TaskStatus", "Idle", 18, 26).color = new Color(0.64f, 0.73f, 0.83f);
+            var status = Text(card.transform, "TaskStatus", "Idle", 16, 48);
+            status.color = new Color(0.64f, 0.73f, 0.83f);
+            status.textWrappingMode = TextWrappingModes.Normal;
             Text(card.transform, "PartName", "No part selected", 22, 40);
             Text(card.transform, "RotationAxis", "ROTATION", 14, 24);
             Text(card.transform, "AngleValue", "0.0\u00b0", 40, 60);
@@ -89,6 +92,14 @@ public static class CreateDesktopPanel
             var maximum = Text(limits.transform, "MaximumAngle", "+45\u00b0", 16, 24);
             maximum.color = new Color(0.64f, 0.73f, 0.83f);
             maximum.alignment = TextAlignmentOptions.Right;
+
+            var fields = new SerializedObject(root.AddComponent<DesktopEditingPanel>());
+            fields.FindProperty("rotationSlider").objectReferenceValue = slider;
+            foreach (var binding in new[] { ("taskStatus", "TaskStatus"), ("partName", "PartName"),
+                ("rotationAxis", "RotationAxis"), ("angleValue", "AngleValue"),
+                ("minimumAngle", "RotationLimits/MinimumAngle"), ("maximumAngle", "RotationLimits/MaximumAngle") })
+                fields.FindProperty(binding.Item1).objectReferenceValue = card.transform.Find(binding.Item2).GetComponent<TMP_Text>();
+            fields.ApplyModifiedPropertiesWithoutUndo();
 
             if (PrefabUtility.SaveAsPrefabAsset(root, Path) == null)
                 throw new InvalidOperationException("Could not save DesktopPanel prefab.");
