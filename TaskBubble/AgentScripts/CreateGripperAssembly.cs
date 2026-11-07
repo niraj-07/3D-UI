@@ -59,6 +59,7 @@ public static class CreateGripperAssembly
             body.transform.localPosition = new Vector3(0f, thickness - mountingY, -centreZ);
             connector.transform.localPosition = Vector3.up * thickness;
             ConfigureFingertips(root);
+            ApplyDemoPose(root);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, output);
             if (prefab == null) throw new InvalidOperationException("Could not save assembly prefab.");
             return new { success = true, prefab = output, meshCount = root.GetComponentsInChildren<MeshFilter>().Length,
@@ -109,5 +110,32 @@ public static class CreateGripperAssembly
             serialized.FindProperty("maximumAngleDegrees").floatValue = 45f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
+    }
+
+    public static object SetDemoPose()
+    {
+        const string path = "Assets/TaskBubble/CAD/GripperAssembly.prefab";
+        if (Application.isPlaying) throw new InvalidOperationException("Leave Play Mode first.");
+        var stage = PrefabStageUtility.GetCurrentPrefabStage();
+        if (stage != null && stage.assetPath == path && stage.scene.isDirty)
+            throw new InvalidOperationException("Save or undo your prefab edits first.");
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try
+        {
+            ApplyDemoPose(root);
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            return new { success = true, tiltedPart = "gripper.fingertip-a", startingAngle = 25f,
+                correctionFromInitialPose = -25f, alignedReference = "gripper.fingertip-b" };
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void ApplyDemoPose(GameObject root)
+    {
+        var parts = root.GetComponentsInChildren<EditablePart>();
+        var tilted = parts.Single(p => p.PartId == "gripper.fingertip-a");
+        var reference = parts.Single(p => p.PartId == "gripper.fingertip-b");
+        tilted.transform.localRotation = Quaternion.AngleAxis(25f, Vector3.forward);
+        reference.transform.localRotation = Quaternion.identity;
     }
 }
