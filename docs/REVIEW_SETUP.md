@@ -12,6 +12,10 @@ VR prefab: `Assets/TaskBubble/Review/VrReviewControls.prefab`.
 
 Assign its scene `DelegationSession` and `TaskBubbleConnection`. Its Accept and Reject references are already wired. Both buttons enable only for a connected VR participant during Review and disable while a decision is pending. An authoritative update or refused operation clears the pending state. Accept calls `AcceptProposal()`; Reject calls `RejectProposal()`. The host remains responsible for validation and changes to the real part.
 
-The prefab has its own world-space Canvas, GraphicRaycaster, and large TextMeshPro button labels. At its default scale it is 0.56 m wide and 0.20 m high. Its position is a starting placement; set the final position and Canvas event camera when integrating your teammate's VR rig. Connect the rig's XR UI input and raycasting there. No XR packages, controller bindings, or EventSystem are added by this step. Mouse/keyboard UI callbacks have been checked in Unity; headset ray interaction has not.
+The prefab has its own world-space Canvas, GraphicRaycaster, and large TextMeshPro button labels. At its default scale it is 0.56 m wide and 0.40 m high. Its position is a starting placement; set the final position and Canvas event camera when integrating your teammate's VR rig. Connect the rig's XR UI input and raycasting there. No XR packages, controller bindings, or EventSystem are added by this step. Mouse/keyboard UI callbacks have been checked in Unity; headset ray interaction has not.
 
-These controls are not yet placed in a scene or nested into the desktop/VR prefabs. Reset and review feedback follow in the next step.
+Reset is wired into the VR prefab. It enables for the VR participant during Requested, Editing, Review, Accepted, or Rejected, and calls `ResetTask()`. Idle and disconnected sessions cannot reset. All VR actions lock while a decision or reset is pending; failed requests unlock the available actions for retry.
+
+Both prefabs show task progress, Accepted/Rejected results, and Disconnected status. Refused operations display their reason only on the caller's panel. Reset clears the result back to No active task. The feedback text references are optional; removing a message does not disable the core controls. Keep the desktop feedback area below Submit clear of other UI when integrating.
+
+These controls are not yet placed in a scene or nested into the desktop/VR prefabs. The final combined prefab check follows; scene wiring and headset checks belong to integration.

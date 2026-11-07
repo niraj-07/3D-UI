@@ -56,6 +56,7 @@ public static class CreateVrReviewControls
             fields.FindProperty("acceptButton").objectReferenceValue = accept;
             fields.FindProperty("rejectButton").objectReferenceValue = reject;
             fields.ApplyModifiedPropertiesWithoutUndo();
+            AddResetAndFeedback(root);
             if (PrefabUtility.SaveAsPrefabAsset(root, path) == null) throw new InvalidOperationException("Could not save VR review controls.");
             return path;
         }
@@ -77,6 +78,32 @@ public static class CreateVrReviewControls
         text.rectTransform.anchorMin = Vector2.zero; text.rectTransform.anchorMax = Vector2.one;
         text.rectTransform.offsetMin = new Vector2(12f, 0f); text.rectTransform.offsetMax = new Vector2(-12f, 0f);
         return button;
+    }
+
+    public static string AddResetAndFeedbackToExistingPrefab()
+    {
+        const string path = "Assets/TaskBubble/Review/VrReviewControls.prefab";
+        if (Application.isPlaying) throw new InvalidOperationException("Leave Play Mode first.");
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try { AddResetAndFeedback(root); PrefabUtility.SaveAsPrefabAsset(root, path); return path; }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void AddResetAndFeedback(GameObject root)
+    {
+        if (root.transform.Find("Reset") != null || root.transform.Find("Feedback") != null)
+            throw new InvalidOperationException("Reset and feedback already exist; edit them instead.");
+        root.GetComponent<RectTransform>().sizeDelta = new Vector2(560, 400);
+        var feedback = Text(root.transform, "Feedback", "Disconnected", 22);
+        feedback.textWrappingMode = TextWrappingModes.Normal;
+        feedback.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 96;
+        feedback.transform.SetSiblingIndex(1);
+        var reset = Button(root.transform, "Reset", new Color(0.20f, 0.27f, 0.37f));
+        reset.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 64;
+        var fields = new SerializedObject(root.GetComponent<VrReviewControls>());
+        fields.FindProperty("resetButton").objectReferenceValue = reset;
+        fields.FindProperty("feedback").objectReferenceValue = feedback;
+        fields.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static TMP_Text Text(Transform parent, string name, string value, int size)

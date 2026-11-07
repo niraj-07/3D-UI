@@ -56,6 +56,7 @@ public static class CreateDesktopReviewControls
             var fields = new SerializedObject(root.AddComponent<DesktopReviewControls>());
             fields.FindProperty("submitButton").objectReferenceValue = button;
             fields.ApplyModifiedPropertiesWithoutUndo();
+            AddFeedback(root);
             if (PrefabUtility.SaveAsPrefabAsset(root, path) == null)
                 throw new InvalidOperationException("Could not save desktop review controls.");
             return path;
@@ -65,5 +66,31 @@ public static class CreateDesktopReviewControls
             SceneManager.SetActiveScene(previous);
             EditorSceneManager.CloseScene(scene, true);
         }
+    }
+
+    public static string AddFeedbackToExistingPrefab()
+    {
+        const string path = "Assets/TaskBubble/Review/DesktopReviewControls.prefab";
+        if (Application.isPlaying) throw new InvalidOperationException("Leave Play Mode first.");
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try { AddFeedback(root); PrefabUtility.SaveAsPrefabAsset(root, path); return path; }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void AddFeedback(GameObject root)
+    {
+        if (root.transform.Find("Feedback") != null) throw new InvalidOperationException("Feedback already exists; edit it instead.");
+        var textRoot = new GameObject("Feedback", typeof(RectTransform), typeof(TextMeshProUGUI));
+        textRoot.layer = 5;
+        textRoot.transform.SetParent(root.transform, false);
+        var rect = textRoot.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 0f); rect.anchorMax = new Vector2(1f, 0f); rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0f, -12f); rect.sizeDelta = new Vector2(0f, 72f);
+        var text = textRoot.GetComponent<TextMeshProUGUI>(); text.font = TMP_Settings.defaultFontAsset;
+        text.text = "Disconnected"; text.fontSize = 16; text.color = new Color(0.64f, 0.73f, 0.83f);
+        text.textWrappingMode = TextWrappingModes.Normal; text.raycastTarget = false;
+        var fields = new SerializedObject(root.GetComponent<DesktopReviewControls>());
+        fields.FindProperty("feedback").objectReferenceValue = text;
+        fields.ApplyModifiedPropertiesWithoutUndo();
     }
 }
