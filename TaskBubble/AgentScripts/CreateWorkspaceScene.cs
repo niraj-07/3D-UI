@@ -53,7 +53,12 @@ public static class CreateWorkspaceScene
             camera.tag = "MainCamera"; camera.nearClipPlane = .05f; camera.farClipPlane = 30f;
             camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color(.10f, .14f, .19f);
             camera.cullingMask &= ~(1 << 30);
-            camera.rect = new Rect(.38f, 0, .62f, 1);
+            // Clear the whole window so resized overlay UI cannot leave stale pixels.
+            camera.rect = new Rect(0, 0, 1, 1);
+            camera.usePhysicalProperties = true;
+            camera.sensorSize = new Vector2(36f, 20.25f);
+            camera.focalLength = 26.4f;
+            camera.lensShift = new Vector2(-.2f, 0);
             camera.transform.position = new Vector3(1.9f, 1.85f, -1.35f);
             camera.transform.LookAt(new Vector3(0, 1.04f, 1.25f)); camera.fieldOfView = 42f;
 
