@@ -81,7 +81,9 @@ Task 10's first step implements `AcceptProposal`. The host requires the VR role,
 
 The MVP's one editable part has a separate server-written committed rotation. Rejoining clients receive it, and clearing or respawning the task session does not undo an accepted edit. Each peer applies the rotation before notifying its views of Accepted. Keep the same part ID and CAD hierarchy on both peers.
 
-Reject and Reset follow in separate task 10 commits and currently report that they are not implemented. This component has not yet been added to the connection scene or connected to UI; no Accept button is included in this step.
+Task 10's second step implements `RejectProposal`. The host requires the VR role, the current nonzero task ID, and Review state. Rejection publishes Rejected while retaining the reviewed values for feedback. It does not change either real part or the committed rotation, including an earlier accepted edit. Duplicate decisions and further adjustments are refused; Rejected stays visible until Reset.
+
+Reset follows in the final task 10 commit and currently reports that it is not implemented. This component has not yet been added to the connection scene or connected to UI; Accept and Reject buttons are separate review UI work.
 
 Task 10 owns committed poses. Save the original demo rotation separately when the assembly loads: it is not necessarily the same as `StartingLocalRotation` after an accepted edit and another delegation. Synchronize accepted/reset poses before notifying views of the resulting state. Clear the snapshot to `DelegationSnapshot.Idle` on reset.
 

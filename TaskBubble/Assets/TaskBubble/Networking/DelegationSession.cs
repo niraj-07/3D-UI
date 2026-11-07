@@ -85,6 +85,39 @@ namespace TaskBubble.Networking
             AcceptProposalRpc(Current.TaskId);
         }
 
+        public void RejectProposal()
+        {
+            if (!IsSpawned || connection == null || connection.State != ConnectionState.Connected)
+            {
+                OperationRejected?.Invoke("Connect before rejecting an edit.");
+                return;
+            }
+            RejectProposalRpc(Current.TaskId);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void RejectProposalRpc(uint taskId, RpcParams rpcParams = default)
+        {
+            ulong sender = rpcParams.Receive.SenderClientId;
+            var current = task.Value;
+            string reason;
+            if (connection == null || !connection.TryGetRole(sender, out var role) || role != ParticipantRole.Vr)
+                reason = "Only the connected VR participant can reject an edit.";
+            else if (taskId == 0 || taskId != current.TaskId)
+                reason = "This rejection belongs to an old or missing task.";
+            else if (current.State != DelegationState.Review)
+                reason = "Only a submitted proposal can be rejected.";
+            else
+            {
+                // Keep the reviewed snapshot for feedback; leave the committed pose untouched.
+                current.State = DelegationState.Rejected;
+                task.Value = current;
+                return;
+            }
+
+            RejectOperationRpc(reason, RpcTarget.Single(sender, RpcTargetUse.Temp));
+        }
+
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         private void AcceptProposalRpc(uint taskId, RpcParams rpcParams = default)
         {
@@ -231,8 +264,7 @@ namespace TaskBubble.Networking
             StateChanged?.Invoke(Current);
         }
 
-        // Reject and Reset follow in separate task 10 commits.
-        public void RejectProposal() => NotImplementedYet();
+        // Reset follows in the final task 10 commit.
         public void ResetTask() => NotImplementedYet();
         private void NotImplementedYet() => OperationRejected?.Invoke("This operation is not implemented yet.");
 
