@@ -19,7 +19,7 @@ namespace TaskBubble.Networking
         private void Awake()
         {
             wired = mode != null && hostAddress != null && hostButton != null && joinButton != null &&
-                disconnectButton != null && status != null && instructions != null;
+                disconnectButton != null && status != null;
             if (!wired)
             {
                 Debug.LogError("ConnectionPanel has missing UI references.", this);
@@ -89,9 +89,10 @@ namespace TaskBubble.Networking
             disconnectButton.interactable = connection != null && !canStart &&
                 connection.State != ConnectionState.Disconnected && connection.State != ConnectionState.Disconnecting;
             status.text = connection != null ? connection.Status : "Connection component is not assigned.";
-            instructions.text = vr
-                ? "Join the desktop host. Use 127.0.0.1 when both instances run on this PC."
-                : "Start the desktop host first, then join from the VR instance.";
+            if (instructions != null)
+                instructions.text = vr
+                    ? "Join the desktop host. Use 127.0.0.1 when both instances run on this PC."
+                    : "Start the desktop host first, then join from the VR instance.";
         }
     }
 }
