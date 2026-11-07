@@ -18,17 +18,17 @@ The coupling is turned to match the gripper's mounting axis and sits flush under
 
 | Object | Stable ID | Local axis | Limits |
 |---|---|---|---|
-| `GripperBody/Fingertip_A` | `gripper.fingertip-a` | Z | -45 to +45 degrees |
-| `GripperBody/Fingertip_B` | `gripper.fingertip-b` | Z | -45 to +45 degrees |
+| `GripperBody/Fingertip_A` | `gripper.fingertip-a` | Z | -90 to +90 degrees |
+| `GripperBody/Fingertip_B` | `gripper.fingertip-b` | Z | -90 to +90 degrees |
 
 Each fingertip has a parent pivot at the centre of its lower attachment edge and the original model nested as `FingertipMesh`. The mesh retains its aligned placement at zero rotation. These are simple demo adjustments, not a simulation of the manufacturer's gripper mechanism. A/B follows the source model names. Only one part can be delegated at a time.
 
-The saved demo pose starts `Fingertip_A` at +25 degrees around local Z. `Fingertip_B` stays at zero as a visible aligned reference. For the first delegation of A, proposing -25 degrees relative to that starting pose returns it to its aligned orientation. The slider's zero means the pose at delegation time, not the original CAD alignment. The session's existing reset captures the initial scene pose, so resetting A restores the +25-degree demo misalignment. Reset operates on the current task's part.
+The saved demo pose starts `Fingertip_A` at +70 degrees around local Z. `Fingertip_B` stays at zero as a visible aligned reference. For the first delegation of A, proposing -70 degrees relative to that starting pose returns it to its aligned orientation. The slider's zero means the pose at delegation time, not the original CAD alignment. The session's existing reset captures the initial scene pose, so resetting A restores the +70-degree demo misalignment. Reset operates on the current task's part.
 
 Each gripper mesh has a simple box collider. The fingertip colliders are on their mesh children; resolve the editable part with `GetComponentInParent<EditablePart>()`. The connector has one box collider matching its mesh bounds. These are selection hitboxes, not detailed collision geometry. No rigidbodies or joint simulation are added.
 
 `AgentScripts/CreateGripperAssembly.cs`, entry `CreateGripperAssembly.Build`, creates the prefab using Unity APIs. It refuses to overwrite an existing prefab. `CreateGripperAssembly.UpgradeFingertips` updates the earlier connector-only prefab. Verification checked twelve meshes and colliders, two unique registered editable IDs, preserved aligned geometry, and independent 30-degree fingertip rotations without moving other parts. Calculating a proposal leaves the actual part unchanged.
 
-`CreateGripperAssembly.SetDemoPose` explicitly restores the saved +25/0 degree starting poses on an existing prefab. Fresh builds include those poses too. A correction check and rendered before/after views verified that a -25-degree proposal aligns A without changing B or the body. This does not yet verify the full network accept/reject/reset flow with this assembly.
+`CreateGripperAssembly.SetDemoPose` explicitly restores the saved +70/0 degree starting poses on an existing prefab. Fresh builds include those poses too. A correction check and rendered before/after views verified that a -70-degree proposal aligns A without changing B or the body. This does not yet verify the full network accept/reject/reset flow with this assembly.
 
-To inspect it, double-click `GripperAssembly.prefab` in the Project window. Select `GripperBody/Fingertip_A` and change its local Z rotation from 25 to 0 to see the correction; undo afterwards to keep the demo misalignment. `Fingertip_B` is also independently editable. Scene wiring, the enlarged table display, and the network ghost remain for integration. UI and ghost bindings that currently reference a single test part still need to follow the selected fingertip during integration.
+To inspect it, double-click `GripperAssembly.prefab` in the Project window. Select `GripperBody/Fingertip_A` and change its local Z rotation from 70 to 0 to see the correction; undo afterwards to keep the demo misalignment. `Fingertip_B` is also independently editable. Scene wiring, the enlarged table display, and the network ghost remain for integration. UI and ghost bindings that currently reference a single test part still need to follow the selected fingertip during integration.
