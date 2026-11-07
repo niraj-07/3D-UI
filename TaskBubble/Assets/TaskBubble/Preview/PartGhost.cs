@@ -1,4 +1,5 @@
 using TaskBubble.Shared;
+using TaskBubble.Networking;
 using UnityEngine;
 
 namespace TaskBubble.Preview
@@ -6,9 +7,38 @@ namespace TaskBubble.Preview
     public sealed class PartGhost : MonoBehaviour
     {
         [SerializeField] private Material ghostMaterial;
+        [SerializeField] private DelegationSession session;
+        [SerializeField] private TaskBubbleConnection connection;
+        [SerializeField] private EditablePart editablePart;
         private EditablePart source;
         private Transform ghostRoot;
         private bool hasGeometry;
+
+        private void OnEnable()
+        {
+            if (session != null) session.StateChanged += OnStateChanged;
+            if (connection != null) connection.Changed += Refresh;
+            Refresh();
+        }
+
+        private void OnStateChanged(DelegationSnapshot snapshot) => Refresh();
+
+        private void Refresh()
+        {
+            if (session == null || !session.IsSpawned || connection == null ||
+                connection.State != ConnectionState.Connected || connection.LocalRole != ParticipantRole.Vr ||
+                editablePart == null)
+            {
+                Hide();
+                return;
+            }
+            var snapshot = session.Current;
+            if (snapshot.TaskId != 0 && snapshot.PartId == editablePart.PartId &&
+                (snapshot.State == DelegationState.Editing || snapshot.State == DelegationState.Review))
+                Show(editablePart, snapshot.ProposalLocalRotation);
+            else
+                Hide();
+        }
 
         public bool Show(EditablePart part, Quaternion localRotation)
         {
@@ -84,6 +114,11 @@ namespace TaskBubble.Preview
             hasGeometry = false;
         }
 
-        private void OnDisable() => RemoveGhost();
+        private void OnDisable()
+        {
+            if (session != null) session.StateChanged -= OnStateChanged;
+            if (connection != null) connection.Changed -= Refresh;
+            RemoveGhost();
+        }
     }
 }

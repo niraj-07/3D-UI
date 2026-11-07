@@ -45,3 +45,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TaskBubble.Preview.PartGhost
   ghostMaterial: {fileID: 2100000, guid: 2181857b18000224b84a860b2e79bb62, type: 2}
+  session: {fileID: 0}
+  connection: {fileID: 0}
+  editablePart: {fileID: 0}
