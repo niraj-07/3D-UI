@@ -14,4 +14,8 @@ The desktop host starts a requested task with a zero-degree proposal once. The s
 
 Controls stay disabled without a connected desktop session or matching part, and during Review, Accepted, Rejected, and Idle. Re-enabling the panel does not duplicate its event listeners.
 
-The component is not yet placed in the connection scene. The part close-up is the next step. Submit and VR decision buttons belong to task 9.
+The left side shows a close-up through `DesktopPartPreview`, already connected inside the prefab. It copies static MeshFilter/MeshRenderer visuals and child transforms, reuses their meshes/materials, and excludes scripts and colliders. The preview follows the proposed local rotation during Editing/Review, shows the committed result in Accepted, and returns to the task's starting rotation in Rejected. Idle and disconnect hide it. Disabling the panel destroys the temporary geometry, camera, light, and render texture.
+
+The preview uses a square 640-pixel render texture without stretching, a dedicated camera, and currently unused layer **30**. Reserve that layer for desktop previews and exclude it from the main/VR cameras during scene integration. Its visual stage is kept away from the CAD assembly. No project layers or camera settings are changed automatically. Prepare the CAD part with a correct pivot and consistent scale in task 5; skinned meshes are outside this CAD MVP.
+
+The prefab is not yet placed in the connection scene. Submit and VR decision buttons belong to task 9; scene wiring belongs to task 11.

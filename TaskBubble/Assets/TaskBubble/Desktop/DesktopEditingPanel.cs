@@ -18,6 +18,7 @@ namespace TaskBubble.Desktop
         [SerializeField] private TMP_Text angleValue;
         [SerializeField] private TMP_Text minimumAngle;
         [SerializeField] private TMP_Text maximumAngle;
+        [SerializeField] private DesktopPartPreview preview;
 
         private bool refreshing;
         private uint startedTaskId;
@@ -94,6 +95,14 @@ namespace TaskBubble.Desktop
                 angleValue.text = Degrees(hasPart ? snapshot.ProposalAngleDegrees : 0f);
                 minimumAngle.text = hasPart ? Degrees(editablePart.MinimumAngleDegrees) : "";
                 maximumAngle.text = hasPart ? Degrees(editablePart.MaximumAngleDegrees) : "";
+                if (preview != null)
+                {
+                    if (hasPart && session != null && session.IsSpawned && connection != null &&
+                        connection.State == ConnectionState.Connected && connection.LocalRole == ParticipantRole.Desktop)
+                        preview.Show(editablePart, snapshot);
+                    else
+                        preview.Clear();
+                }
             }
             finally { refreshing = false; }
         }

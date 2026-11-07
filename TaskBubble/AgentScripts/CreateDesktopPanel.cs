@@ -100,6 +100,7 @@ public static class CreateDesktopPanel
                 ("minimumAngle", "RotationLimits/MinimumAngle"), ("maximumAngle", "RotationLimits/MaximumAngle") })
                 fields.FindProperty(binding.Item1).objectReferenceValue = card.transform.Find(binding.Item2).GetComponent<TMP_Text>();
             fields.ApplyModifiedPropertiesWithoutUndo();
+            AddCloseup(root);
 
             if (PrefabUtility.SaveAsPrefabAsset(root, Path) == null)
                 throw new InvalidOperationException("Could not save DesktopPanel prefab.");
@@ -125,6 +126,48 @@ public static class CreateDesktopPanel
         text.textWrappingMode = TextWrappingModes.NoWrap;
         Height(go, height);
         return text;
+    }
+
+    public static string AddCloseupToExistingPrefab()
+    {
+        if (Application.isPlaying) throw new InvalidOperationException("Leave Play Mode first.");
+        var root = PrefabUtility.LoadPrefabContents(Path);
+        try
+        {
+            AddCloseup(root);
+            PrefabUtility.SaveAsPrefabAsset(root, Path);
+            return Path;
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void AddCloseup(GameObject root)
+    {
+        if (root.transform.Find("Closeup") != null)
+            throw new InvalidOperationException("Close-up already exists; edit its existing objects.");
+        var frame = new GameObject("Closeup", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        frame.transform.SetParent(root.transform, false);
+        var rect = frame.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 0.5f);
+        rect.anchoredPosition = new Vector2(32f, 0f);
+        rect.sizeDelta = new Vector2(800f, 600f);
+        frame.GetComponent<UnityEngine.UI.Image>().color = new Color(0.035f, 0.06f, 0.1f);
+        frame.GetComponent<UnityEngine.UI.Image>().raycastTarget = false;
+        var image = new GameObject("PartImage", typeof(RectTransform), typeof(UnityEngine.UI.RawImage), typeof(UnityEngine.UI.AspectRatioFitter));
+        image.transform.SetParent(frame.transform, false);
+        var fit = image.GetComponent<UnityEngine.UI.AspectRatioFitter>();
+        fit.aspectMode = UnityEngine.UI.AspectRatioFitter.AspectMode.FitInParent;
+        fit.aspectRatio = 1f;
+        var output = image.GetComponent<UnityEngine.UI.RawImage>();
+        output.raycastTarget = false;
+        output.enabled = false;
+        var preview = root.AddComponent<DesktopPartPreview>();
+        var fields = new SerializedObject(preview);
+        fields.FindProperty("output").objectReferenceValue = output;
+        fields.ApplyModifiedPropertiesWithoutUndo();
+        fields = new SerializedObject(root.GetComponent<DesktopEditingPanel>());
+        fields.FindProperty("preview").objectReferenceValue = preview;
+        fields.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static void Height(GameObject go, int height)
