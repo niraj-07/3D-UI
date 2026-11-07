@@ -13,6 +13,8 @@ Add `EditablePart` to the CAD part that can be edited. Set its ID, local rotatio
 
 Task 4 must check for missing or duplicate IDs when registering parts and refuse delegation for invalid parts. This component does not register itself or start networking.
 
+`TaskBubble.Networking.EditablePartRegistry` handles this lookup. Call `Rebuild(assemblyRoot)` after the assembly loads, then use `TryGet(partId, out part)`. Registration includes inactive children and uses case-sensitive IDs. If any part is invalid, registration returns false, exposes the reason through `Error`, and clears the whole lookup. Fix the part and rebuild before allowing delegation. Rebuild again if the assembly or its IDs change; the registry does not watch scene changes automatically.
+
 ## Methods
 
 | Method | Caller | Meaning |
