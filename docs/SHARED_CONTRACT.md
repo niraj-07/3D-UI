@@ -71,7 +71,9 @@ Task 4 owns serialization and transport. Capture `Current.TaskId` when sending t
 
 Step 2 implements `RequestDelegation`: the host checks the RPC sender's assigned VR role, Idle state, registered part, and starting rotation. It publishes a server-written snapshot with a nonzero task ID and zero angle. Joining clients receive the current snapshot too. Rejected requests notify only their caller. No request moves the real part.
 
-The remaining interface methods currently report that they are not implemented. Proposal updates and submission follow in the next steps; accept/reject/reset belong to task 10. Clearing the host's unfinished task when VR disconnects is also still pending. This component has not yet been added to the connection scene or connected to UI.
+Step 3 implements `UpdateProposal`: it sends the task ID observed by the caller with the requested angle. The host requires the Desktop role, a matching nonzero task ID, Requested or Editing state, and a valid registered part. It uses the captured starting rotation and the part's local axis and limits to calculate the proposal. Valid updates publish Editing, the new angle, and the proposed local rotation to both peers. Invalid updates leave the snapshot unchanged. Views can use these snapshots for the ghost; the session does not create or move a ghost or the real part.
+
+Submission follows in the next step; accept/reject/reset belong to task 10. Those interface methods currently report that they are not implemented. Clearing the host's unfinished task when VR disconnects is also still pending. This component has not yet been added to the connection scene or connected to UI.
 
 Task 10 owns committed poses. Save the original demo rotation separately when the assembly loads: it is not necessarily the same as `StartingLocalRotation` after an accepted edit and another delegation. Synchronize accepted/reset poses before notifying views of the resulting state. Clear the snapshot to `DelegationSnapshot.Idle` on reset.
 

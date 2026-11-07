@@ -45,6 +45,44 @@ namespace TaskBubble.Networking
             RequestDelegationRpc(partId ?? "");
         }
 
+        public void UpdateProposal(float angleDegrees)
+        {
+            if (!IsSpawned || connection == null || connection.State != ConnectionState.Connected)
+            {
+                OperationRejected?.Invoke("Connect before proposing an edit.");
+                return;
+            }
+            UpdateProposalRpc(Current.TaskId, angleDegrees);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void UpdateProposalRpc(uint taskId, float angleDegrees, RpcParams rpcParams = default)
+        {
+            ulong sender = rpcParams.Receive.SenderClientId;
+            var current = task.Value;
+            string reason;
+            if (connection == null || !connection.TryGetRole(sender, out var role) || role != ParticipantRole.Desktop)
+                reason = "Only the connected desktop participant can propose an edit.";
+            else if (taskId == 0 || taskId != current.TaskId)
+                reason = "This proposal belongs to an old or missing task.";
+            else if (current.State != DelegationState.Requested && current.State != DelegationState.Editing)
+                reason = "This task is not accepting adjustments.";
+            else if (!parts.TryGet(current.PartId, out var part))
+                reason = "The selected part is missing or has invalid settings.";
+            else if (!part.TryGetProposalLocalRotation(current.StartingRotation, angleDegrees, out var rotation))
+                reason = "Enter a finite angle within the selected part's rotation limits.";
+            else
+            {
+                current.State = DelegationState.Editing;
+                current.ProposalRotation = rotation;
+                current.Angle = angleDegrees;
+                task.Value = current;
+                return;
+            }
+
+            RejectOperationRpc(reason, RpcTarget.Single(sender, RpcTargetUse.Temp));
+        }
+
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         private void RequestDelegationRpc(string partId, RpcParams rpcParams = default)
         {
@@ -87,7 +125,6 @@ namespace TaskBubble.Networking
         }
 
         // These operations are implemented in the following task steps.
-        public void UpdateProposal(float angleDegrees) => NotImplementedYet();
         public void SubmitProposal() => NotImplementedYet();
         public void AcceptProposal() => NotImplementedYet();
         public void RejectProposal() => NotImplementedYet();
