@@ -13,6 +13,8 @@ Add `EditablePart` to the CAD part that can be edited. Set its ID, local rotatio
 
 Task 4 must check for missing or duplicate IDs when registering parts and refuse delegation for invalid parts. This component does not register itself or start networking.
 
+`TaskBubble.Networking.EditablePartRegistry` handles this lookup. Call `Rebuild(assemblyRoot)` after the assembly loads, then use `TryGet(partId, out part)`. Registration includes inactive children and uses case-sensitive IDs. If any part is invalid, registration returns false, exposes the reason through `Error`, and clears the whole lookup. Fix the part and rebuild before allowing delegation. Rebuild again if the assembly or its IDs change; the registry does not watch scene changes automatically.
+
 ## Methods
 
 | Method | Caller | Meaning |
@@ -62,6 +64,20 @@ Subscribe to `StateChanged`, then read `Current` to draw the initial view. `Stat
 `OperationRejected` reports a readable reason only to the caller whose request failed. Use it for feedback; do not treat it as a state update.
 
 Task 4 owns serialization and transport. Capture `Current.TaskId` when sending task-specific requests and include it in the network message. The host must reject stale IDs and issue a new ID for every delegation, even when the same part is selected again. The UI does not generate IDs or pass client roles as proof of permission.
+
+## Delegation session setup
+
+`TaskBubble.Networking.DelegationSession` implements the shared interface. During scene integration, add one scene object with `NetworkObject` and `DelegationSession`, assign the scene's `TaskBubbleConnection` and CAD assembly root, and use the same scene on both peers. Keep the session enabled before starting the connection so Netcode spawns it with the scene. It registers the assembly on network spawn; load the assembly before connecting.
+
+Step 2 implements `RequestDelegation`: the host checks the RPC sender's assigned VR role, Idle state, registered part, and starting rotation. It publishes a server-written snapshot with a nonzero task ID and zero angle. Joining clients receive the current snapshot too. Rejected requests notify only their caller. No request moves the real part.
+
+Step 3 implements `UpdateProposal`: it sends the task ID observed by the caller with the requested angle. The host requires the Desktop role, a matching nonzero task ID, Requested or Editing state, and a valid registered part. It uses the captured starting rotation and the part's local axis and limits to calculate the proposal. Valid updates publish Editing, the new angle, and the proposed local rotation to both peers. Invalid updates leave the snapshot unchanged. Views can use these snapshots for the ghost; the session does not create or move a ghost or the real part.
+
+Step 4 implements `SubmitProposal`: the host requires the Desktop role, the current nonzero task ID, Editing state, and a valid part and angle. Submission changes the state to Review while keeping the captured start, proposed rotation, and angle. Further adjustments and duplicate submissions are refused.
+
+When VR disconnects, the host clears Requested, Editing, or Review to Idle without moving the part. Both local views also clear when their network object despawns. The session clears its stored snapshot on server despawn so restarting it cannot revive an unfinished task. Its task ID counter stays monotonic while that session object exists, including across reconnects.
+
+Accept/reject/reset belong to task 10 and currently report that they are not implemented. This component has not yet been added to the connection scene or connected to UI.
 
 Task 10 owns committed poses. Save the original demo rotation separately when the assembly loads: it is not necessarily the same as `StartingLocalRotation` after an accepted edit and another delegation. Synchronize accepted/reset poses before notifying views of the resulting state. Clear the snapshot to `DelegationSnapshot.Idle` on reset.
 
