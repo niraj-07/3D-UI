@@ -1,6 +1,6 @@
 # VR setup
 
-Task 6 has the PC VR rig and local part selection. Delegate and review UI are not wired yet.
+Task 6 has the PC VR rig, local part selection, and Delegate controls connected to the shared delegation API. Main-scene and headset verification remain.
 
 Packages are pinned through Unity Package Manager: XR Interaction Toolkit 3.7.0, OpenXR 1.19.0, and XR Hands 1.10.0. XR Plug-in Management 4.7.0 is a resolved dependency. No Meta SDK is required for this setup.
 
@@ -20,9 +20,19 @@ Point at either fingertip and press the controller trigger or pinch the index fi
 
 There are four rays: one controller and one hand aim per side. A valid hand aim takes priority over the controller for the same side. Invalid hand aim, hand system/menu gestures and incomplete position/rotation tracking cannot select. After a modality switch, tracking recovery or re-enabling interaction, release a held trigger/pinch before pressing again. Holding a press while aiming at another part does not change selection. A fresh press on empty space or a noneditable object clears it.
 
-The latest selected part is available as `SelectedPart`, with a `SelectionChanged` event for the Delegate control. `InteractionEnabled = false` clears selection and hides the rays; the delegation step will use this while a task is active. Losing all usable pointers or disabling tracking also clears selection and restores the original renderer property blocks. Selection alone sends no network command.
+The latest selected part is available as `SelectedPart`, with a `SelectionChanged` event for the Delegate control. `InteractionEnabled = false` clears selection and hides the rays. `PartSelectionEnabled = false` locks CAD selection but keeps rays usable for buttons. Losing all usable pointers or disabling tracking also clears selection and restores the original renderer property blocks. Selection alone sends no network command.
 
 `CreatePcVrRig.AddSelection` adds this setup to the earlier rig; fresh `CreatePcVrRig.Build` runs include it. Both refuse to overwrite an existing selection setup. `SelectionRay.mat` is shared by the four rays.
+
+## Delegate
+
+The rig contains a nested `VrDelegationControls.prefab`, a world-space panel with a selected-part name, feedback and Delegate button. The button has a box collider so the same trigger/pinch ray can press it; it remains a normal uGUI button for mouse input in a scene with an EventSystem. A disabled button consumes the ray press without changing the selected CAD part.
+
+Assign the scene's `DelegationSession` and `TaskBubbleConnection` to `VrDelegationControls` during integration. Its selection reference is already assigned within the rig. Assign the same CAD root to the session and selection component. The panel sits to the left of the rig origin and can be positioned beside the inspection table later.
+
+Delegate is available only for a connected VR client with a spawned session, an Idle task and a configured selected part. Pressing it captures that part's ID and calls `RequestDelegation(id)`. The button locks immediately until the host responds. Pending requests and active tasks lock further CAD selection; UI rays stay available. Refused requests show the host's reason and allow a new selection. Reset returning the session to Idle unlocks selection. Disconnect or the desktop role disables interaction. The host remains responsible for authoritative validation.
+
+The panel is built by `AgentScripts/CreateVrDelegationControls.cs`, entry `CreateVrDelegationControls.Build`, which also nests it in the existing rig. It refuses to overwrite existing controls. Existing review prefabs are still separate; to operate their buttons with these rays during integration, give each button a matching box collider on the Button object. UI hitboxes should be in front of other solid colliders. Hand/controller hover animations and rendered hand models are not part of this step.
 
 ## Link and hands
 
@@ -40,4 +50,6 @@ Saved assets have one Windows OpenXR loader, automatic startup disabled, all thr
 
 Step 2 passed eighteen Play Mode checks with simulated Input System devices: trigger and pinch selection, original highlight restoration, held-input rejection, solid occlusion, assembly scope, hand/controller priority, tracking loss/recovery, system gestures, interaction gating and disable cleanup. The cyan highlight was also rendered on the actual gripper. These checks do not establish physical headset/controller/hand behavior or final Windows build support.
 
-The setup builder is `AgentScripts/CreatePcVrRig.cs`, entry `CreatePcVrRig.Build`; it refuses to overwrite an existing rig prefab. Hardware validation and Delegate/UI wiring remain.
+Step 3 passed thirteen checks with two real local Netcode peers on isolated UDP port 17779 and a simulated hand pinch: the world-space Delegate button sent the correct fingertip ID, duplicate requests were blocked, task state locked CAD selection while keeping the UI ray, reset unlocked selection, a missing server-side part produced refusal feedback, disconnect disabled controls and the desktop role could not delegate. The panel layout was rendered separately. Physical interaction has not been checked.
+
+The setup builder is `AgentScripts/CreatePcVrRig.cs`, entry `CreatePcVrRig.Build`; it refuses to overwrite an existing rig prefab. Hardware validation and main-scene references remain for integration. This step does not automatically start VR or change the connection scene.

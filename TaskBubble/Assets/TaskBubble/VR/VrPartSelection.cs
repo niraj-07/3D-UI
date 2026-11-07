@@ -26,6 +26,7 @@ namespace TaskBubble.VR
         [SerializeField] private Color selectionColor = new Color(0f, .85f, 1f, 1f);
         private readonly Dictionary<Renderer, MaterialPropertyBlock> originalBlocks = new Dictionary<Renderer, MaterialPropertyBlock>();
         private bool interactionEnabled = true;
+        private bool partSelectionEnabled = true;
 
         public EditablePart SelectedPart { get; private set; }
         public event Action<EditablePart> SelectionChanged;
@@ -33,6 +34,11 @@ namespace TaskBubble.VR
         {
             get => interactionEnabled;
             set { interactionEnabled = value; if (!value) ClearSelection(); }
+        }
+        public bool PartSelectionEnabled
+        {
+            get => partSelectionEnabled;
+            set { partSelectionEnabled = value; if (!value) ClearSelection(); }
         }
 
         public void SetAssemblyRoot(Transform root)
@@ -94,8 +100,16 @@ namespace TaskBubble.VR
                 }
                 if (pressed && !p.wasPressed && p.armed)
                 {
-                    var part = hit ? info.collider.GetComponentInParent<EditablePart>() : null;
-                    SetSelected(IsSelectable(part) ? part : null);
+                    var button = hit ? info.collider.GetComponent<UnityEngine.UI.Button>() : null;
+                    if (button != null)
+                    {
+                        if (button.IsActive() && button.IsInteractable()) button.onClick.Invoke();
+                    }
+                    else if (partSelectionEnabled)
+                    {
+                        var part = hit ? info.collider.GetComponentInParent<EditablePart>() : null;
+                        SetSelected(IsSelectable(part) ? part : null);
+                    }
                 }
                 p.wasActive = true; p.wasPressed = pressed;
             }
