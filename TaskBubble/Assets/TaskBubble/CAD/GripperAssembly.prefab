@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5404851895849933321}
   - component: {fileID: 4466429824856843091}
-  - component: {fileID: 3470570310164254289}
   m_Layer: 0
   m_Name: Connector
   m_TagString: Untagged
@@ -55,22 +54,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.075, y: 0.01690001, z: 0.07499956}
   m_Center: {x: 0, y: -0.008450005, z: 0}
---- !u!114 &3470570310164254289
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 166525649953051079}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f332c1ba6f971fc418a9cebc79ac9a13, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TaskBubble.Shared.EditablePart
-  partId: gripper.connector
-  rotationAxis: 1
-  minimumAngleDegrees: -45
-  maximumAngleDegrees: 45
 --- !u!1 &1509600359320304982
 GameObject:
   m_ObjectHideFlags: 0
@@ -104,6 +87,55 @@ Transform:
   - {fileID: 5404851895849933321}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1724354532247838226
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7669121353970824320}
+  - component: {fileID: 8960360941506207322}
+  m_Layer: 0
+  m_Name: Fingertip_B
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7669121353970824320
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1724354532247838226}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.052078754, y: 0.11121072, z: 0.09347574}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2230241234780510378}
+  m_Father: {fileID: 2530880303638011963}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8960360941506207322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1724354532247838226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f332c1ba6f971fc418a9cebc79ac9a13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaskBubble.Shared.EditablePart
+  partId: gripper.fingertip-b
+  rotationAxis: 2
+  minimumAngleDegrees: -45
+  maximumAngleDegrees: 45
 --- !u!1 &6987372823868329940
 GameObject:
   m_ObjectHideFlags: 0
@@ -142,29 +174,78 @@ Transform:
   - {fileID: 5770259110813759637}
   - {fileID: 778792021604716610}
   - {fileID: 8234995371468816023}
-  - {fileID: 319080243682640118}
-  - {fileID: 2230241234780510378}
+  - {fileID: 1826064967668731952}
+  - {fileID: 7669121353970824320}
   m_Father: {fileID: 2150242305182447023}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7241940482006527608
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1826064967668731952}
+  - component: {fileID: 2746538162560476605}
+  m_Layer: 0
+  m_Name: Fingertip_A
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1826064967668731952
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7241940482006527608}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.052078754, y: 0.11121072, z: 0.09262574}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 319080243682640118}
+  m_Father: {fileID: 2530880303638011963}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2746538162560476605
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7241940482006527608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f332c1ba6f971fc418a9cebc79ac9a13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaskBubble.Shared.EditablePart
+  partId: gripper.fingertip-a
+  rotationAxis: 2
+  minimumAngleDegrees: -45
+  maximumAngleDegrees: 45
 --- !u!1001 &281229476332955421
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 2530880303638011963}
+    m_TransformParent: {fileID: 1826064967668731952}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 48945a1f75a5542469989c8cf9bb10d0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0
+      value: -0.052078754
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 48945a1f75a5542469989c8cf9bb10d0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.11121072
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 48945a1f75a5542469989c8cf9bb10d0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0.09262574
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 48945a1f75a5542469989c8cf9bb10d0, type: 3}
       propertyPath: m_LocalRotation.w
@@ -172,7 +253,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 48945a1f75a5542469989c8cf9bb10d0, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 48945a1f75a5542469989c8cf9bb10d0, type: 3}
       propertyPath: m_LocalRotation.y
@@ -196,7 +277,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 48945a1f75a5542469989c8cf9bb10d0, type: 3}
       propertyPath: m_Name
-      value: Fingertip_A
+      value: FingertipMesh
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -334,19 +415,19 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 2530880303638011963}
+    m_TransformParent: {fileID: 7669121353970824320}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: f1f8a648fe366ba4eac76465692b3d26, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0
+      value: 0.052078754
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f1f8a648fe366ba4eac76465692b3d26, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.11121072
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f1f8a648fe366ba4eac76465692b3d26, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0.09347574
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f1f8a648fe366ba4eac76465692b3d26, type: 3}
       propertyPath: m_LocalRotation.w
@@ -354,7 +435,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f1f8a648fe366ba4eac76465692b3d26, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f1f8a648fe366ba4eac76465692b3d26, type: 3}
       propertyPath: m_LocalRotation.y
@@ -378,7 +459,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f1f8a648fe366ba4eac76465692b3d26, type: 3}
       propertyPath: m_Name
-      value: Fingertip_B
+      value: FingertipMesh
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -12,12 +12,19 @@ Import validation checks twelve separate static meshes, matching scaled bounds f
 
 ## Assembly prefab
 
-`Assets/TaskBubble/CAD/GripperAssembly.prefab` contains the eleven fixed meshes under `GripperBody` and the coupling under `Connector`. The assembly root sits at the bottom of the coupling, with the fingers pointing up. Scale is still 1; use a uniform parent scale to enlarge the whole assembly for the inspection scene.
+`Assets/TaskBubble/CAD/GripperAssembly.prefab` contains the eleven gripper meshes under `GripperBody` and the fixed coupling under `Connector`. The assembly root sits at the bottom of the coupling, with the fingers pointing up. Scale is still 1; use a uniform parent scale to enlarge the whole assembly for the inspection scene.
 
-The coupling is turned to match the gripper's mounting axis and sits flush under the base. Its pivot is at the centre of the upper mounting face. `Connector` has the only `EditablePart`: ID `gripper.connector`, local Y rotation, limits -45 to +45 degrees. Its mesh is offset under that pivot. The circular outline changes little during rotation; watch the holes and cutouts.
+The coupling is turned to match the gripper's mounting axis and sits flush under the base. It is fixed because its circular shape makes rotation hard to see. The two rectangular fingertips are editable instead:
 
-Each fixed mesh has a simple box collider. The connector has one box collider matching its mesh bounds; these are selection hitboxes, not detailed collision geometry. No rigidbodies or joint simulation are added.
+| Object | Stable ID | Local axis | Limits |
+|---|---|---|---|
+| `GripperBody/Fingertip_A` | `gripper.fingertip-a` | Z | -45 to +45 degrees |
+| `GripperBody/Fingertip_B` | `gripper.fingertip-b` | Z | -45 to +45 degrees |
 
-`AgentScripts/CreateGripperAssembly.cs`, entry `CreateGripperAssembly.Build`, creates the prefab using Unity APIs. It refuses to overwrite an existing prefab. Verification checked twelve meshes, twelve colliders, one configured editable part, no mounting gap, and a 30-degree rotation with a fixed pivot and unchanged gripper body. Calculating a proposal leaves the actual connector unchanged.
+Each fingertip has a parent pivot at the centre of its lower attachment edge and the original model nested as `FingertipMesh`. The mesh retains its aligned placement at zero rotation. These are simple demo adjustments, not a simulation of the manufacturer's gripper mechanism. A/B follows the source model names. Only one part can be delegated at a time.
 
-To inspect it, double-click `GripperAssembly.prefab` in the Project window. Select `Connector` and change its local Y rotation to see the pivot; undo the change afterwards. Scene wiring, the enlarged table display, and the network ghost remain for integration.
+Each gripper mesh has a simple box collider. The fingertip colliders are on their mesh children; resolve the editable part with `GetComponentInParent<EditablePart>()`. The connector has one box collider matching its mesh bounds. These are selection hitboxes, not detailed collision geometry. No rigidbodies or joint simulation are added.
+
+`AgentScripts/CreateGripperAssembly.cs`, entry `CreateGripperAssembly.Build`, creates the prefab using Unity APIs. It refuses to overwrite an existing prefab. `CreateGripperAssembly.UpgradeFingertips` updates the earlier connector-only prefab. Verification checked twelve meshes and colliders, two unique registered editable IDs, preserved aligned geometry, and independent 30-degree fingertip rotations without moving other parts. Calculating a proposal leaves the actual part unchanged.
+
+To inspect it, double-click `GripperAssembly.prefab` in the Project window. Select `GripperBody/Fingertip_A` or `Fingertip_B` and change its local Z rotation; undo the change afterwards. Scene wiring, the enlarged table display, and the network ghost remain for integration. UI and ghost bindings that currently reference a single test part still need to follow the selected fingertip during integration.

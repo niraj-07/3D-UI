@@ -55,21 +55,59 @@ public static class CreateGripperAssembly
             var hitbox = connector.AddComponent<BoxCollider>();
             hitbox.center = new Vector3(0f, -thickness / 2f, 0f);
             hitbox.size = bounds.size;
-            var editable = connector.AddComponent<EditablePart>();
-            var serialized = new SerializedObject(editable);
-            serialized.FindProperty("partId").stringValue = "gripper.connector";
-            serialized.FindProperty("rotationAxis").enumValueIndex = (int)LocalRotationAxis.Y;
-            serialized.FindProperty("minimumAngleDegrees").floatValue = -45f;
-            serialized.FindProperty("maximumAngleDegrees").floatValue = 45f;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
             // Root sits on a surface at y=0; source scale remains one metre per Unity unit.
             body.transform.localPosition = new Vector3(0f, thickness - mountingY, -centreZ);
             connector.transform.localPosition = Vector3.up * thickness;
+            ConfigureFingertips(root);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, output);
             if (prefab == null) throw new InvalidOperationException("Could not save assembly prefab.");
             return new { success = true, prefab = output, meshCount = root.GetComponentsInChildren<MeshFilter>().Length,
-                editableId = editable.PartId, axis = editable.RotationAxis.ToString(), couplingThicknessMetres = thickness };
+                editableIds = root.GetComponentsInChildren<EditablePart>().Select(p => p.PartId).ToArray(),
+                couplingThicknessMetres = thickness };
         }
         finally { EditorSceneManager.ClosePreviewScene(scene); }
+    }
+
+    public static object UpgradeFingertips()
+    {
+        const string path = "Assets/TaskBubble/CAD/GripperAssembly.prefab";
+        if (Application.isPlaying) throw new InvalidOperationException("Leave Play Mode first.");
+        var stage = PrefabStageUtility.GetCurrentPrefabStage();
+        if (stage != null && stage.assetPath == path && stage.scene.isDirty)
+            throw new InvalidOperationException("Save or undo your prefab edits first.");
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try
+        {
+            ConfigureFingertips(root);
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            return new { success = true, editableIds = root.GetComponentsInChildren<EditablePart>().Select(p => p.PartId).ToArray() };
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void ConfigureFingertips(GameObject root)
+    {
+        var connector = root.transform.Find("Connector");
+        var oldEditable = connector.GetComponent<EditablePart>();
+        if (oldEditable != null) UnityEngine.Object.DestroyImmediate(oldEditable);
+        var body = root.transform.Find("GripperBody");
+        foreach (var suffix in new[] { "A", "B" })
+        {
+            var part = body.Find("Fingertip_" + suffix);
+            if (part.GetComponent<EditablePart>() != null) continue;
+            var bounds = part.GetComponentInChildren<Renderer>().bounds;
+            var pivot = new GameObject("Fingertip_" + suffix);
+            pivot.transform.SetParent(body, false);
+            pivot.transform.position = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+            // Keep the exported mesh in place while moving its pivot to its lower attachment edge.
+            part.SetParent(pivot.transform, true);
+            part.name = "FingertipMesh";
+            var serialized = new SerializedObject(pivot.AddComponent<EditablePart>());
+            serialized.FindProperty("partId").stringValue = "gripper.fingertip-" + suffix.ToLowerInvariant();
+            serialized.FindProperty("rotationAxis").enumValueIndex = (int)LocalRotationAxis.Z;
+            serialized.FindProperty("minimumAngleDegrees").floatValue = -45f;
+            serialized.FindProperty("maximumAngleDegrees").floatValue = 45f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
     }
 }
