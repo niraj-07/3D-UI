@@ -83,8 +83,10 @@ The MVP's one editable part has a separate server-written committed rotation. Re
 
 Task 10's second step implements `RejectProposal`. The host requires the VR role, the current nonzero task ID, and Review state. Rejection publishes Rejected while retaining the reviewed values for feedback. It does not change either real part or the committed rotation, including an earlier accepted edit. Duplicate decisions and further adjustments are refused; Rejected stays visible until Reset.
 
-Reset follows in the final task 10 commit and currently reports that it is not implemented. This component has not yet been added to the connection scene or connected to UI; Accept and Reject buttons are separate review UI work.
+Task 10's final step implements `ResetTask`. The host requires the VR role and a matching task ID. Reset in Idle is a no-op. From an active or finished task, it restores the selected part's original demo rotation, updates the committed pose, and clears the public snapshot to Idle on both peers. Stale resets and unavailable parts leave state and poses unchanged. The reset update includes its restored pose so views observe the part restored before receiving Idle.
 
-Task 10 owns committed poses. Save the original demo rotation separately when the assembly loads: it is not necessarily the same as `StartingLocalRotation` after an accepted edit and another delegation. Synchronize accepted/reset poses before notifying views of the resulting state. Clear the snapshot to `DelegationSnapshot.Idle` on reset.
+All shared session methods are now implemented. This component has not yet been added to the connection scene or connected to UI; Accept, Reject, and Reset buttons are separate UI/integration work.
+
+The host captures valid original demo rotations at the first network spawn, before applying any saved committed pose, and keeps them for the session object's lifetime. Load the assembly before connecting and keep its IDs stable. Respawning the same session object does not recapture accepted rotations as original poses. `StartingLocalRotation` remains the current committed rotation at task creation, which may differ from the original demo rotation. Accepted and reset poses are applied before notifying views of the resulting state.
 
 Keep all proposal calculations in local space, with the same CAD hierarchy on both clients. Shared types do not depend on Netcode, XR, or a UI framework.

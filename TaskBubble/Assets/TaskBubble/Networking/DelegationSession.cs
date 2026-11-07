@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TaskBubble.Shared;
 using Unity.Netcode;
 using UnityEngine;
@@ -13,6 +14,7 @@ namespace TaskBubble.Networking
         [SerializeField] private Transform assemblyRoot;
 
         private readonly EditablePartRegistry parts = new EditablePartRegistry();
+        private readonly Dictionary<string, Quaternion> originalRotations = new Dictionary<string, Quaternion>(StringComparer.Ordinal);
         // The MVP has one editable part. Keep its committed pose across task cleanup/reconnects.
         private readonly NetworkVariable<CommittedPose> committedPose = new NetworkVariable<CommittedPose>(
             new CommittedPose { PartId = "", Rotation = Quaternion.identity });
@@ -27,6 +29,14 @@ namespace TaskBubble.Networking
         public override void OnNetworkSpawn()
         {
             parts.Rebuild(assemblyRoot);
+            // Capture once, before applying a saved committed pose. Respawns must not replace the demo pose.
+            if (IsServer && parts.IsReady)
+            {
+                foreach (var part in assemblyRoot.GetComponentsInChildren<EditablePart>(true))
+                    if (!originalRotations.ContainsKey(part.PartId) &&
+                        part.TryGetProposalLocalRotation(part.transform.localRotation, 0f, out var rotation))
+                        originalRotations.Add(part.PartId, rotation);
+            }
             committedPose.OnValueChanged += OnCommittedPoseChanged;
             task.OnValueChanged += OnTaskChanged;
             if (connection != null) connection.Changed += OnConnectionChanged;
@@ -93,6 +103,42 @@ namespace TaskBubble.Networking
                 return;
             }
             RejectProposalRpc(Current.TaskId);
+        }
+
+        public void ResetTask()
+        {
+            if (!IsSpawned || connection == null || connection.State != ConnectionState.Connected)
+            {
+                OperationRejected?.Invoke("Connect before resetting an edit.");
+                return;
+            }
+            ResetTaskRpc(Current.TaskId);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void ResetTaskRpc(uint taskId, RpcParams rpcParams = default)
+        {
+            ulong sender = rpcParams.Receive.SenderClientId;
+            var current = task.Value;
+            string reason;
+            if (connection == null || !connection.TryGetRole(sender, out var role) || role != ParticipantRole.Vr)
+                reason = "Only the connected VR participant can reset an edit.";
+            else if (taskId != current.TaskId)
+                reason = "This reset belongs to an old task.";
+            else if (current.State == DelegationState.Idle)
+                return;
+            else if (!parts.TryGet(current.PartId, out _) || !originalRotations.TryGetValue(current.PartId, out var rotation))
+                reason = "The selected part or its original demo rotation is unavailable.";
+            else
+            {
+                var idle = TaskState.From(DelegationSnapshot.Idle);
+                idle.ResetPose = new CommittedPose { PartId = current.PartId, Rotation = rotation };
+                committedPose.Value = idle.ResetPose;
+                task.Value = idle;
+                return;
+            }
+
+            RejectOperationRpc(reason, RpcTarget.Single(sender, RpcTargetUse.Temp));
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
@@ -260,13 +306,11 @@ namespace TaskBubble.Networking
             // Apply before notifying views, regardless of NetworkVariable callback order.
             if (state.State == DelegationState.Accepted)
                 ApplyCommittedPose(new CommittedPose { PartId = state.PartId, Rotation = state.ProposalRotation });
+            else if (state.State == DelegationState.Idle)
+                ApplyCommittedPose(state.ResetPose);
             Current = state.ToSnapshot();
             StateChanged?.Invoke(Current);
         }
-
-        // Reset follows in the final task 10 commit.
-        public void ResetTask() => NotImplementedYet();
-        private void NotImplementedYet() => OperationRejected?.Invoke("This operation is not implemented yet.");
 
         private struct CommittedPose : INetworkSerializable, IEquatable<CommittedPose>
         {
@@ -290,12 +334,15 @@ namespace TaskBubble.Networking
             public Quaternion StartingRotation;
             public Quaternion ProposalRotation;
             public float Angle;
+            // Reset carries its pose with Idle so views always observe the restored part first.
+            public CommittedPose ResetPose;
 
             public static TaskState From(DelegationSnapshot snapshot) => new TaskState
             {
                 TaskId = snapshot.TaskId, PartId = snapshot.PartId, State = snapshot.State,
                 StartingRotation = snapshot.StartingLocalRotation,
-                ProposalRotation = snapshot.ProposalLocalRotation, Angle = snapshot.ProposalAngleDegrees
+                ProposalRotation = snapshot.ProposalLocalRotation, Angle = snapshot.ProposalAngleDegrees,
+                ResetPose = new CommittedPose { PartId = "", Rotation = Quaternion.identity }
             };
 
             public DelegationSnapshot ToSnapshot() => new DelegationSnapshot(
@@ -309,11 +356,12 @@ namespace TaskBubble.Networking
                 serializer.SerializeValue(ref StartingRotation);
                 serializer.SerializeValue(ref ProposalRotation);
                 serializer.SerializeValue(ref Angle);
+                serializer.SerializeValue(ref ResetPose);
             }
 
             public bool Equals(TaskState other) => TaskId == other.TaskId && PartId == other.PartId &&
                 State == other.State && StartingRotation.Equals(other.StartingRotation) &&
-                ProposalRotation.Equals(other.ProposalRotation) && Angle.Equals(other.Angle);
+                ProposalRotation.Equals(other.ProposalRotation) && Angle.Equals(other.Angle) && ResetPose.Equals(other.ResetPose);
         }
     }
 }
