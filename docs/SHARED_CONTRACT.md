@@ -73,7 +73,11 @@ Step 2 implements `RequestDelegation`: the host checks the RPC sender's assigned
 
 Step 3 implements `UpdateProposal`: it sends the task ID observed by the caller with the requested angle. The host requires the Desktop role, a matching nonzero task ID, Requested or Editing state, and a valid registered part. It uses the captured starting rotation and the part's local axis and limits to calculate the proposal. Valid updates publish Editing, the new angle, and the proposed local rotation to both peers. Invalid updates leave the snapshot unchanged. Views can use these snapshots for the ghost; the session does not create or move a ghost or the real part.
 
-Submission follows in the next step; accept/reject/reset belong to task 10. Those interface methods currently report that they are not implemented. Clearing the host's unfinished task when VR disconnects is also still pending. This component has not yet been added to the connection scene or connected to UI.
+Step 4 implements `SubmitProposal`: the host requires the Desktop role, the current nonzero task ID, Editing state, and a valid part and angle. Submission changes the state to Review while keeping the captured start, proposed rotation, and angle. Further adjustments and duplicate submissions are refused.
+
+When VR disconnects, the host clears Requested, Editing, or Review to Idle without moving the part. Both local views also clear when their network object despawns. The session clears its stored snapshot on server despawn so restarting it cannot revive an unfinished task. Its task ID counter stays monotonic while that session object exists, including across reconnects.
+
+Accept/reject/reset belong to task 10 and currently report that they are not implemented. This component has not yet been added to the connection scene or connected to UI.
 
 Task 10 owns committed poses. Save the original demo rotation separately when the assembly loads: it is not necessarily the same as `StartingLocalRotation` after an accepted edit and another delegation. Synchronize accepted/reset poses before notifying views of the resulting state. Clear the snapshot to `DelegationSnapshot.Idle` on reset.
 

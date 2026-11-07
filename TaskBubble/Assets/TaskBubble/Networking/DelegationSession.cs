@@ -25,12 +25,16 @@ namespace TaskBubble.Networking
         {
             parts.Rebuild(assemblyRoot);
             task.OnValueChanged += OnTaskChanged;
+            if (connection != null) connection.Changed += OnConnectionChanged;
             Publish(task.Value);
         }
 
         public override void OnNetworkDespawn()
         {
             task.OnValueChanged -= OnTaskChanged;
+            if (connection != null) connection.Changed -= OnConnectionChanged;
+            // Scene objects can be spawned again after the host restarts.
+            if (IsServer) task.Value = TaskState.From(DelegationSnapshot.Idle);
             Current = DelegationSnapshot.Idle;
             StateChanged?.Invoke(Current);
         }
@@ -53,6 +57,40 @@ namespace TaskBubble.Networking
                 return;
             }
             UpdateProposalRpc(Current.TaskId, angleDegrees);
+        }
+
+        public void SubmitProposal()
+        {
+            if (!IsSpawned || connection == null || connection.State != ConnectionState.Connected)
+            {
+                OperationRejected?.Invoke("Connect before submitting an edit.");
+                return;
+            }
+            SubmitProposalRpc(Current.TaskId);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void SubmitProposalRpc(uint taskId, RpcParams rpcParams = default)
+        {
+            ulong sender = rpcParams.Receive.SenderClientId;
+            var current = task.Value;
+            string reason;
+            if (connection == null || !connection.TryGetRole(sender, out var role) || role != ParticipantRole.Desktop)
+                reason = "Only the connected desktop participant can submit an edit.";
+            else if (taskId == 0 || taskId != current.TaskId)
+                reason = "This submission belongs to an old or missing task.";
+            else if (current.State != DelegationState.Editing)
+                reason = "Start editing before submitting a proposal for review.";
+            else if (!parts.TryGet(current.PartId, out var part) || !part.IsAngleAllowed(current.Angle))
+                reason = "The selected part or proposal is no longer valid.";
+            else
+            {
+                current.State = DelegationState.Review;
+                task.Value = current;
+                return;
+            }
+
+            RejectOperationRpc(reason, RpcTarget.Single(sender, RpcTargetUse.Temp));
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
@@ -118,14 +156,23 @@ namespace TaskBubble.Networking
 
         private void OnTaskChanged(TaskState previous, TaskState next) => Publish(next);
 
+        private void OnConnectionChanged()
+        {
+            if (!IsSpawned || !IsServer || connection.HasVrClient && connection.State == ConnectionState.Connected)
+                return;
+
+            var state = task.Value.State;
+            if (state == DelegationState.Requested || state == DelegationState.Editing || state == DelegationState.Review)
+                task.Value = TaskState.From(DelegationSnapshot.Idle);
+        }
+
         private void Publish(TaskState state)
         {
             Current = state.ToSnapshot();
             StateChanged?.Invoke(Current);
         }
 
-        // These operations are implemented in the following task steps.
-        public void SubmitProposal() => NotImplementedYet();
+        // Committing or discarding reviewed edits belongs to task 10.
         public void AcceptProposal() => NotImplementedYet();
         public void RejectProposal() => NotImplementedYet();
         public void ResetTask() => NotImplementedYet();
