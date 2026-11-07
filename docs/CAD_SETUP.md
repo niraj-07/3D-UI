@@ -10,4 +10,14 @@ The models are Base, Finger1–4 A/B, Fingertip A/B, and Coupling. A/B identifie
 
 Import validation checks twelve separate static meshes, matching scaled bounds for both source models, and unchanged triangle counts: 258,566 for the gripper and 16,898 for the coupling. The three gripper colors and black coupling material import as URP Lit materials. No geometry has been removed or simplified in this step.
 
-The components retain their source assembly coordinates. Their pivots are not yet prepared for independent joint rotation. The next step is to create the assembly prefab, align the coupling, and configure its pivot, collider, stable ID, and rotation limits. A separate parent can enlarge the complete assembly for the table-top inspection scene later.
+## Assembly prefab
+
+`Assets/TaskBubble/CAD/GripperAssembly.prefab` contains the eleven fixed meshes under `GripperBody` and the coupling under `Connector`. The assembly root sits at the bottom of the coupling, with the fingers pointing up. Scale is still 1; use a uniform parent scale to enlarge the whole assembly for the inspection scene.
+
+The coupling is turned to match the gripper's mounting axis and sits flush under the base. Its pivot is at the centre of the upper mounting face. `Connector` has the only `EditablePart`: ID `gripper.connector`, local Y rotation, limits -45 to +45 degrees. Its mesh is offset under that pivot. The circular outline changes little during rotation; watch the holes and cutouts.
+
+Each fixed mesh has a simple box collider. The connector has one box collider matching its mesh bounds; these are selection hitboxes, not detailed collision geometry. No rigidbodies or joint simulation are added.
+
+`AgentScripts/CreateGripperAssembly.cs`, entry `CreateGripperAssembly.Build`, creates the prefab using Unity APIs. It refuses to overwrite an existing prefab. Verification checked twelve meshes, twelve colliders, one configured editable part, no mounting gap, and a 30-degree rotation with a fixed pivot and unchanged gripper body. Calculating a proposal leaves the actual connector unchanged.
+
+To inspect it, double-click `GripperAssembly.prefab` in the Project window. Select `Connector` and change its local Y rotation to see the pivot; undo the change afterwards. Scene wiring, the enlarged table display, and the network ghost remain for integration.
