@@ -24,6 +24,8 @@ namespace TaskBubble.Integration
 
         private void OnEnable()
         {
+            var selection = vrRig != null ? vrRig.GetComponentInChildren<VrPartSelection>(true) : null;
+            if (selection != null) selection.SetMenuRoots(vrDelegationPanel, vrReviewPanel);
             if (previewButton != null) previewButton.onClick.AddListener(PreviewInHeadset);
             if (connection != null) connection.Changed += OnConnectionChanged;
         }

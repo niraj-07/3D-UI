@@ -27,6 +27,16 @@ namespace TaskBubble.VR
         private readonly Dictionary<Renderer, MaterialPropertyBlock> originalBlocks = new Dictionary<Renderer, MaterialPropertyBlock>();
         private bool interactionEnabled = true;
         private bool partSelectionEnabled = true;
+        private UnityEngine.UI.Button[] buttons = Array.Empty<UnityEngine.UI.Button>();
+        private readonly RaycastHit[] nearbyHits = new RaycastHit[32];
+
+        public void SetMenuRoots(params GameObject[] roots)
+        {
+            var found = new List<UnityEngine.UI.Button>();
+            foreach (var root in roots)
+                if (root != null) found.AddRange(root.GetComponentsInChildren<UnityEngine.UI.Button>(true));
+            buttons = found.ToArray();
+        }
 
         public EditablePart SelectedPart { get; private set; }
         public event Action<EditablePart> SelectionChanged;
@@ -91,29 +101,63 @@ namespace TaskBubble.VR
                 if (!p.wasActive) p.armed = !pressed;
                 if (!pressed) p.armed = true;
                 var ray = new Ray(p.origin.position, p.origin.forward);
-                bool hit = Physics.Raycast(ray, out var info, maximumDistance,
-                    Physics.DefaultRaycastLayers & ~(1 << 30), QueryTriggerInteraction.Ignore);
+                TryPoint(ray, out var point, out var part, out var button);
                 if (p.line != null)
                 {
                     p.line.SetPosition(0, ray.origin);
-                    p.line.SetPosition(1, hit ? info.point : ray.GetPoint(maximumDistance));
+                    p.line.SetPosition(1, point);
+                    p.line.startColor = p.line.endColor = button != null && button.IsInteractable() || IsSelectable(part)
+                        ? new Color(.3f, 1f, .5f) : selectionColor;
                 }
                 if (pressed && !p.wasPressed && p.armed)
                 {
-                    var button = hit ? info.collider.GetComponent<UnityEngine.UI.Button>() : null;
                     if (button != null)
                     {
                         if (button.IsActive() && button.IsInteractable()) button.onClick.Invoke();
                     }
                     else if (partSelectionEnabled)
                     {
-                        var part = hit ? info.collider.GetComponentInParent<EditablePart>() : null;
                         SetSelected(IsSelectable(part) ? part : null);
                     }
                 }
                 p.wasActive = true; p.wasPressed = pressed;
             }
             if (!anyActive || (!ReferenceEquals(SelectedPart, null) && !IsSelectable(SelectedPart))) ClearSelection();
+        }
+
+        private bool TryPoint(Ray ray, out Vector3 point, out EditablePart part, out UnityEngine.UI.Button button)
+        {
+            const int mask = Physics.DefaultRaycastLayers & ~(1 << 30);
+            bool hit = Physics.Raycast(ray, out var info, maximumDistance, mask, QueryTriggerInteraction.Ignore);
+            float distance = hit ? info.distance : maximumDistance;
+            point = ray.GetPoint(distance);
+            part = hit ? info.collider.GetComponentInParent<EditablePart>() : null;
+            button = hit ? info.collider.GetComponentInParent<UnityEngine.UI.Button>() : null;
+            // Test the visible button rectangle, independent of thin or stale physics hitboxes.
+            foreach (var candidate in buttons)
+            {
+                if (candidate == null || !candidate.gameObject.activeInHierarchy) continue;
+                var canvas = candidate.GetComponentInParent<Canvas>();
+                if (canvas == null || !canvas.isActiveAndEnabled) continue;
+                var rect = (RectTransform)candidate.transform;
+                var plane = new Plane(rect.forward, rect.position);
+                if (!plane.Raycast(ray, out float d) || d > maximumDistance || d > distance + .012f) continue;
+                Vector3 local = rect.InverseTransformPoint(ray.GetPoint(d));
+                if (!rect.rect.Contains(new Vector2(local.x, local.y))) continue;
+                distance = d; point = ray.GetPoint(d); button = candidate; part = null; hit = true;
+            }
+            if (button != null || IsSelectable(part)) return hit;
+            // A 12 mm tolerance helps small fingertips without selecting through a solid surface.
+            int count = Physics.SphereCastNonAlloc(ray, .012f, nearbyHits, maximumDistance, mask, QueryTriggerInteraction.Ignore);
+            float closest = distance;
+            for (int i = 0; i < count; i++)
+            {
+                var candidate = nearbyHits[i].collider.GetComponentInParent<EditablePart>();
+                if (!IsSelectable(candidate) || nearbyHits[i].distance > closest) continue;
+                closest = nearbyHits[i].distance; part = candidate;
+                point = nearbyHits[i].point; hit = true;
+            }
+            return hit;
         }
 
         private bool IsSelectable(EditablePart part) => part != null && part.isActiveAndEnabled && part.IsConfigured &&
