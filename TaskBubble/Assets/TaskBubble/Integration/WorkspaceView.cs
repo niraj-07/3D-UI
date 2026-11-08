@@ -23,6 +23,8 @@ namespace TaskBubble.Integration
         private bool networkVr;
         private bool menusVisible;
         private VrPartSelection selection;
+        private bool desktopFrameLimitApplied;
+        private int previousTargetFrameRate;
 
         private void OnEnable()
         {
@@ -60,6 +62,7 @@ namespace TaskBubble.Integration
         private void RefreshPanels()
         {
             bool running = vrRig != null && vrRig.IsRunning;
+            SetDesktopFrameLimit(IsDesktop && !running);
             bool connectedVr = connection != null && connection.State == ConnectionState.Connected &&
                 connection.LocalRole == ParticipantRole.Vr;
             if (desktopEditingPanel != null) desktopEditingPanel.SetActive(IsDesktop && !running);
@@ -81,6 +84,22 @@ namespace TaskBubble.Integration
             if (previewStatus != null)
                 previewStatus.text = IsDesktop ? "Desktop host ready. Delegate a fingertip from VR." :
                     "Connect Quest Link or Air Link, then preview. Esc returns to desktop.";
+        }
+
+        private void SetDesktopFrameLimit(bool apply)
+        {
+            if (apply && !desktopFrameLimitApplied)
+            {
+                previousTargetFrameRate = Application.targetFrameRate;
+                // Leave GPU time for the VR process and Air Link encoding on the same PC.
+                Application.targetFrameRate = previousTargetFrameRate > 0 ? Mathf.Min(previousTargetFrameRate, 30) : 30;
+                desktopFrameLimitApplied = true;
+            }
+            else if (!apply && desktopFrameLimitApplied)
+            {
+                Application.targetFrameRate = previousTargetFrameRate;
+                desktopFrameLimitApplied = false;
+            }
         }
 
         private static void SetMenuVisible(GameObject panel, bool visible)
@@ -132,6 +151,7 @@ namespace TaskBubble.Integration
         private void StartHeadsetView()
         {
             if (vrRig == null || desktopCamera == null) return;
+            SetDesktopFrameLimit(false);
             menusVisible = false;
             desktopCamera.enabled = false;
             if (!vrRig.StartVr())
@@ -175,6 +195,7 @@ namespace TaskBubble.Integration
             if (previewButton != null) previewButton.onClick.RemoveListener(PreviewInHeadset);
             if (connection != null) connection.Changed -= OnConnectionChanged;
             ReturnToDesktop();
+            SetDesktopFrameLimit(false);
         }
     }
 }
