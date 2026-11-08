@@ -36,6 +36,8 @@ Commit: `feat: add exact desktop angle input`
 
 ### Step 2 — A different correction on fingertip B
 
+Implemented. Twenty-two checks passed with the actual CAD prefab and two local network peers, including B selection, correction, rejection, acceptance, and independent Reset behavior. Headset-height and oblique before/after captures were reviewed; physical headset verification remains.
+
 - Keep A's existing ID, local Z axis, +70-degree starting pose, and limits.
 - Keep B's existing ID and pivot, change its allowed axis to local X, and start it at +25 degrees with limits of -45 to +45 degrees.
 - Inspect the result from desktop and headset-height views. The twist must be obvious and the part easy to point at; adjust the demo angle if necessary before finalizing it.

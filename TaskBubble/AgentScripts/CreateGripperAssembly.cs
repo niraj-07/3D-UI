@@ -105,9 +105,9 @@ public static class CreateGripperAssembly
             part.name = "FingertipMesh";
             var serialized = new SerializedObject(pivot.AddComponent<EditablePart>());
             serialized.FindProperty("partId").stringValue = "gripper.fingertip-" + suffix.ToLowerInvariant();
-            serialized.FindProperty("rotationAxis").enumValueIndex = (int)LocalRotationAxis.Z;
-            serialized.FindProperty("minimumAngleDegrees").floatValue = -90f;
-            serialized.FindProperty("maximumAngleDegrees").floatValue = 90f;
+            serialized.FindProperty("rotationAxis").enumValueIndex = (int)(suffix == "A" ? LocalRotationAxis.Z : LocalRotationAxis.X);
+            serialized.FindProperty("minimumAngleDegrees").floatValue = suffix == "A" ? -90f : -45f;
+            serialized.FindProperty("maximumAngleDegrees").floatValue = suffix == "A" ? 90f : 45f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
     }
@@ -125,7 +125,8 @@ public static class CreateGripperAssembly
             ApplyDemoPose(root);
             PrefabUtility.SaveAsPrefabAsset(root, path);
             return new { success = true, tiltedPart = "gripper.fingertip-a", startingAngle = 70f,
-                correctionFromInitialPose = -70f, alignedReference = "gripper.fingertip-b" };
+                correctionFromInitialPose = -70f, secondPart = "gripper.fingertip-b", secondAxis = "X",
+                secondStartingAngle = 25f, secondCorrectionFromInitialPose = -25f };
         }
         finally { PrefabUtility.UnloadPrefabContents(root); }
     }
@@ -134,8 +135,13 @@ public static class CreateGripperAssembly
     {
         var parts = root.GetComponentsInChildren<EditablePart>();
         var tilted = parts.Single(p => p.PartId == "gripper.fingertip-a");
-        var reference = parts.Single(p => p.PartId == "gripper.fingertip-b");
+        var twisted = parts.Single(p => p.PartId == "gripper.fingertip-b");
+        var fields = new SerializedObject(twisted);
+        fields.FindProperty("rotationAxis").enumValueIndex = (int)LocalRotationAxis.X;
+        fields.FindProperty("minimumAngleDegrees").floatValue = -45f;
+        fields.FindProperty("maximumAngleDegrees").floatValue = 45f;
+        fields.ApplyModifiedPropertiesWithoutUndo();
         tilted.transform.localRotation = Quaternion.AngleAxis(70f, Vector3.forward);
-        reference.transform.localRotation = Quaternion.identity;
+        twisted.transform.localRotation = Quaternion.AngleAxis(25f, Vector3.right);
     }
 }
