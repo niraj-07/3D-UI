@@ -1,5 +1,6 @@
 using TaskBubble.Shared;
 using TaskBubble.Networking;
+using TMPro;
 using UnityEngine;
 
 namespace TaskBubble.Preview
@@ -11,6 +12,8 @@ namespace TaskBubble.Preview
         [SerializeField] private TaskBubbleConnection connection;
         [SerializeField] private EditablePart editablePart;
         [SerializeField] private Transform assemblyRoot;
+        [SerializeField] private TMP_Text acceptanceFeedback;
+        [SerializeField] private Camera feedbackCamera;
         private readonly EditablePartRegistry parts = new EditablePartRegistry();
         private EditablePart source;
         private Transform ghostRoot;
@@ -20,7 +23,7 @@ namespace TaskBubble.Preview
         private bool acceptanceActive;
         private float acceptanceStarted;
         private uint acceptedTaskId;
-        private const float AcceptanceDuration = 1.2f;
+        private const float AcceptanceDuration = 1.6f;
 
         private void OnEnable()
         {
@@ -57,6 +60,12 @@ namespace TaskBubble.Preview
                         acceptanceStarted = Time.unscaledTime;
                         acceptanceActive = true;
                         SetAcceptanceTint(.6f);
+                        if (acceptanceFeedback != null)
+                        {
+                            acceptanceFeedback.text = "Change accepted";
+                            acceptanceFeedback.gameObject.SetActive(true);
+                            PositionFeedback();
+                        }
                     }
                 }
             }
@@ -74,6 +83,22 @@ namespace TaskBubble.Preview
                 return;
             }
             SetAcceptanceTint(.6f * (1f - Mathf.SmoothStep(0f, 1f, progress)));
+            PositionFeedback();
+        }
+
+        private void PositionFeedback()
+        {
+            if (acceptanceFeedback == null || ghostRenderers == null || ghostRenderers.Length == 0) return;
+            var bounds = ghostRenderers[0].bounds;
+            foreach (var renderer in ghostRenderers) if (renderer != null) bounds.Encapsulate(renderer.bounds);
+            acceptanceFeedback.transform.position = new Vector3(bounds.center.x, bounds.max.y + .12f, bounds.center.z);
+            var viewer = feedbackCamera != null ? feedbackCamera : Camera.main;
+            if (viewer != null)
+            {
+                Vector3 direction = acceptanceFeedback.transform.position - viewer.transform.position;
+                if (direction.sqrMagnitude > .0001f)
+                    acceptanceFeedback.transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+            }
         }
 
         private void SetAcceptanceTint(float alpha)
@@ -87,6 +112,7 @@ namespace TaskBubble.Preview
         public bool Show(EditablePart part, Quaternion localRotation)
         {
             acceptanceActive = false;
+            if (acceptanceFeedback != null) acceptanceFeedback.gameObject.SetActive(false);
             float magnitude = Quaternion.Dot(localRotation, localRotation);
             if (part == null || !part.IsConfigured || !part.gameObject.activeInHierarchy || ghostMaterial == null ||
                 float.IsNaN(magnitude) || float.IsInfinity(magnitude) || magnitude < 0.000001f)
@@ -117,6 +143,7 @@ namespace TaskBubble.Preview
         public void Hide()
         {
             acceptanceActive = false;
+            if (acceptanceFeedback != null) acceptanceFeedback.gameObject.SetActive(false);
             if (ghostRoot != null) ghostRoot.gameObject.SetActive(false);
         }
 
@@ -168,6 +195,7 @@ namespace TaskBubble.Preview
             if (session != null) session.StateChanged -= OnStateChanged;
             if (connection != null) connection.Changed -= Refresh;
             RemoveGhost();
+            if (acceptanceFeedback != null) acceptanceFeedback.gameObject.SetActive(false);
         }
     }
 }

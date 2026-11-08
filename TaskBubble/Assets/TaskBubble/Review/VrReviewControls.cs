@@ -90,7 +90,7 @@ namespace TaskBubble.Review
                     DelegationState.Requested => "Help requested",
                     DelegationState.Editing => "Desktop is editing",
                     DelegationState.Review => "Ready for review",
-                    DelegationState.Accepted => "Proposal accepted",
+                    DelegationState.Accepted => "Change accepted",
                     DelegationState.Rejected => "Rejected. Waiting for desktop revision",
                     _ => "No active task"
                 };

@@ -64,7 +64,7 @@ After acceptance, VR selection and Delegate become available again. Selecting th
 
 Initialize sessions with `DelegationSnapshot.Idle`, not `default(DelegationSnapshot)`.
 
-Subscribe to `StateChanged`, then read `Current` to draw the initial view. `StateChanged` fires after each authoritative update arrives, including angle changes while the state stays Editing. Unsubscribe when the view is disabled. Show a ghost during Editing/Review and hide it in Idle/Accepted/Rejected.
+Subscribe to `StateChanged`, then read `Current` to draw the initial view. `StateChanged` fires after each authoritative update arrives, including angle changes while the state stays Editing. Unsubscribe when the view is disabled. Show a cyan proposal ghost during Editing/Review and hide it in Idle/Rejected. Accepted briefly shows a green confirmation at the committed pose, then hides; this is local visual feedback and does not change task state.
 
 `OperationRejected` reports a readable reason only to the caller whose request failed. Use it for feedback; do not treat it as a state update.
 

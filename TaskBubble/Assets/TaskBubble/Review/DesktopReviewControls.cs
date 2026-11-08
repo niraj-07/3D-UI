@@ -59,7 +59,7 @@ namespace TaskBubble.Review
                     DelegationState.Requested => "Help requested",
                     DelegationState.Editing => "Ready to submit",
                     DelegationState.Review => "Waiting for VR review",
-                    DelegationState.Accepted => "Proposal accepted",
+                    DelegationState.Accepted => "Change accepted",
                     DelegationState.Rejected => "Rejected. Adjust and resubmit",
                     _ => "No active task"
                 };
