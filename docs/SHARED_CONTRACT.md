@@ -19,7 +19,7 @@ Task 4 must check for missing or duplicate IDs when registering parts and refuse
 
 | Method | Caller | Meaning |
 |---|---|---|
-| `RequestDelegation(string partId)` | VR | Request an edit of that part while Idle. |
+| `RequestDelegation(string partId)` | VR | Request an edit while Idle or after acceptance. |
 | `UpdateProposal(float angleDegrees)` | Desktop | Propose an angle offset from the rotation captured when the task started. |
 | `SubmitProposal()` | Desktop | Freeze the proposal and ask VR to review it. |
 | `AcceptProposal()` | VR | Apply the reviewed proposal to the real part on both clients. |
@@ -37,11 +37,12 @@ These methods send requests; they do not report synchronous success. The host mu
 | Current state | Valid request | Result |
 |---|---|---|
 | Idle | RequestDelegation | Requested; capture the current committed local rotation and start with angle zero. |
+| Accepted | RequestDelegation | Requested; start a new task from the selected part's current committed rotation. |
 | Requested | UpdateProposal | Editing; calculate and publish the proposal. |
 | Editing | UpdateProposal | Editing; publish the new proposal. |
 | Editing | SubmitProposal | Review; stop accepting adjustments. |
 | Review | AcceptProposal | Accepted; apply the proposal to the committed part. |
-| Review | RejectProposal | Rejected; discard the proposal. |
+| Review | RejectProposal | Rejected; leave the committed part unchanged and allow desktop revision. |
 | Rejected | UpdateProposal | Editing; retain the starting pose and issue a fresh task ID for the retry. |
 | Rejected | SubmitProposal | Review; resubmit the same proposal with a fresh task ID. |
 | Any active or finished task | ResetTask | Idle; restore the original demo pose and clear the task. |
@@ -49,6 +50,8 @@ These methods send requests; they do not report synchronous success. The host mu
 The desktop view can call `UpdateProposal(0f)` when opening a newly requested task to start editing. Do that once on Requested, not on every state update. Submit is valid in Editing or Rejected. After rejection, the desktop slider stays editable and the close-up retains the proposed pose; the VR ghost returns on the next edit or submission. The real part stays unchanged until acceptance.
 
 Rejected remains visible until desktop edits, resubmits, or VR resets. Every retry gets a new task ID, including unchanged resubmissions, so a decision from an earlier review cannot apply to the retry. Reset while Idle is a no-op. All other invalid requests leave the shared state and real part unchanged.
+
+After acceptance, VR selection and Delegate become available again. Selecting the same part or another part starts a new task with angle zero relative to its current committed pose. Reset is optional and restores the original demo pose; it is not required to start a revision.
 
 ## Reading updates
 
@@ -71,7 +74,7 @@ Task 4 owns serialization and transport. Capture `Current.TaskId` when sending t
 
 `TaskBubble.Networking.DelegationSession` implements the shared interface. During scene integration, add one scene object with `NetworkObject` and `DelegationSession`, assign the scene's `TaskBubbleConnection` and CAD assembly root, and use the same scene on both peers. Keep the session enabled before starting the connection so Netcode spawns it with the scene. It registers the assembly on network spawn; load the assembly before connecting.
 
-Step 2 implements `RequestDelegation`: the host checks the RPC sender's assigned VR role, Idle state, registered part, and starting rotation. It publishes a server-written snapshot with a nonzero task ID and zero angle. Joining clients receive the current snapshot too. Rejected requests notify only their caller. No request moves the real part.
+Step 2 implements `RequestDelegation`: the host checks the RPC sender's assigned VR role, Idle or Accepted state, registered part, and starting rotation. It publishes a server-written snapshot with a nonzero task ID and zero angle. Joining clients receive the current snapshot too. Rejected requests notify only their caller. No request moves the real part.
 
 Step 3 implements `UpdateProposal`: it sends the task ID observed by the caller with the requested angle. The host requires the Desktop role, a matching nonzero task ID, Requested or Editing state, and a valid registered part. It uses the captured starting rotation and the part's local axis and limits to calculate the proposal. Valid updates publish Editing, the new angle, and the proposed local rotation to both peers. Invalid updates leave the snapshot unchanged. Views can use these snapshots for the ghost; the session does not create or move a ghost or the real part.
 

@@ -30,7 +30,7 @@ The rig contains a nested `VrDelegationControls.prefab`, a world-space panel wit
 
 Assign the scene's `DelegationSession` and `TaskBubbleConnection` to `VrDelegationControls` during integration. Its selection reference is already assigned within the rig. Assign the same CAD root to the session and selection component. The panel sits to the left of the rig origin and can be positioned beside the inspection table later.
 
-Delegate is available only for a connected VR client with a spawned session, an Idle task and a configured selected part. Pressing it captures that part's ID and calls `RequestDelegation(id)`. The button locks immediately until the host responds. Pending requests and active tasks lock further CAD selection; UI rays stay available. Refused requests show the host's reason and allow a new selection. Reset returning the session to Idle unlocks selection. Disconnect or the desktop role disables interaction. The host remains responsible for authoritative validation.
+Delegate is available for a connected VR client with a spawned session, an Idle or Accepted task and a configured selected part. Pressing it captures that part's ID and calls `RequestDelegation(id)`. The button locks immediately until the host responds. Pending requests and active tasks lock further CAD selection; UI rays stay available. Acceptance unlocks selection so the same part can be delegated again from its accepted rotation. Rejection lets desktop adjust and resubmit. Reset remains available to restore the original demo pose. Disconnect or the desktop role disables interaction. The host remains responsible for authoritative validation.
 
 The panel is built by `AgentScripts/CreateVrDelegationControls.cs`, entry `CreateVrDelegationControls.Build`, which also nests it in the existing rig. It refuses to overwrite existing controls. MainScene connects both menu roots to the pointer, including their button rectangles and colliders.
 
@@ -38,7 +38,7 @@ The panel is built by `AgentScripts/CreateVrDelegationControls.cs`, entry `Creat
 
 The rig uses Unity XR Hands' left and right hand meshes, with all 26 joints mapped by `XRHandSkeletonDriver`. `XRHandMeshController` hides a hand when tracking is lost. The meshes have no colliders and cannot block the selection rays. `AgentScripts/AddTrackedHandMeshes.cs` adds this setup; model attribution and license are in `Assets/TaskBubble/VR/Hands`.
 
-In a connected VR session, menus start hidden. On the **left hand**, pinch your middle finger and thumb twice within half a second, releasing between pinches. Both menus appear in front of where you are looking, with their centers 1.3 m apart. Repeat to hide them. Index-finger pinches still select parts and press buttons. With controllers, double-press the left secondary button (Y) instead.
+In a connected VR session, menus start hidden. On the **left hand**, pinch your middle finger and thumb twice within half a second, releasing between pinches. The menus appear beside your view, with Delegate 0.85 m to the left and review 1.05 m to the right, keeping the center clear for the machine. Repeat to hide them. Index-finger pinches still select parts and press buttons. With controllers, double-press the left secondary button (Y) instead.
 
 Hiding menus disables their canvases and hitboxes, while keeping task subscriptions and CAD selection alive. Showing them again places them in front of your current view. Disconnecting or leaving VR hides them. Offline Preview in headset shows the model and hands; task menus require a VR network connection.
 

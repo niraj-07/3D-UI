@@ -27,7 +27,7 @@ This requires a new Windows build of the current MainScene. The older Connection
 3. In VR, select the tilted Fingertip A and point at Delegate, then trigger/pinch. The desktop starts a zero-offset proposal automatically; the real fingertip stays at its starting pose.
 4. On desktop, adjust the slider toward -70 degrees to straighten A. The desktop close-up and VR ghost follow the proposal, while the real part remains still.
 5. Click Submit for review. The slider locks. In VR, choose Reject to discard the ghost, or Accept to apply the proposed pose on both peers.
-6. Press Reset in VR to restore the original misalignment and return to Idle. Select again for a new task. Fingertip B can also be delegated; its label, close-up, limits and ghost are resolved independently.
+6. After rejection, adjust and resubmit from desktop. After acceptance, select and Delegate the same fingertip again to revise its accepted pose. Reset is optional: it restores the original misalignment and returns to Idle. Fingertip B can also be delegated; its label, close-up, limits and ghost are resolved independently.
 
 CAD selection locks while a request/task is active. Pointer rays remain available for the world-space buttons, whose box colliders match their rectangles. A fresh trigger/pinch invokes a button without selecting the CAD behind it. The button controls retain their own role, state and pending-operation guards.
 

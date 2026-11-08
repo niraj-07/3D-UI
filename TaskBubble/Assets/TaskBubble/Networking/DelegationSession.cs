@@ -257,7 +257,7 @@ namespace TaskBubble.Networking
             string reason = null;
             if (connection == null || !connection.TryGetRole(sender, out var role) || role != ParticipantRole.Vr)
                 reason = "Only the connected VR participant can request an edit.";
-            else if (task.Value.State != DelegationState.Idle)
+            else if (task.Value.State != DelegationState.Idle && task.Value.State != DelegationState.Accepted)
                 reason = "An edit is already active.";
             else if (!parts.IsReady)
                 reason = parts.Error;

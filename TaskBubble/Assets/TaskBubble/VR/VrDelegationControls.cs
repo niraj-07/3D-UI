@@ -19,7 +19,8 @@ namespace TaskBubble.VR
 
         private bool HasVrSession => session != null && session.IsSpawned && connection != null &&
             connection.State == ConnectionState.Connected && connection.LocalRole == ParticipantRole.Vr;
-        public bool CanDelegate => HasVrSession && !awaitingRequest && session.Current.State == DelegationState.Idle &&
+        public bool CanDelegate => HasVrSession && !awaitingRequest &&
+            (session.Current.State == DelegationState.Idle || session.Current.State == DelegationState.Accepted) &&
             selection != null && selection.SelectedPart != null && selection.SelectedPart.isActiveAndEnabled &&
             selection.SelectedPart.IsConfigured;
 
@@ -61,7 +62,7 @@ namespace TaskBubble.VR
         {
             bool connected = HasVrSession;
             if (!connected) awaitingRequest = false;
-            bool idle = connected && session.Current.State == DelegationState.Idle;
+            bool idle = connected && (session.Current.State == DelegationState.Idle || session.Current.State == DelegationState.Accepted);
             if (selection != null)
             {
                 selection.InteractionEnabled = connected;
@@ -77,12 +78,11 @@ namespace TaskBubble.VR
             }
             if (feedback != null)
                 feedback.text = !connected ? "Connect as VR to request help" : awaitingRequest ? "Requesting help..." :
-                    idle ? "Select a fingertip, then Delegate" : session.Current.State switch
+                    idle ? (session.Current.State == DelegationState.Accepted ? "Accepted. Select a part to revise" : "Select a fingertip, then Delegate") : session.Current.State switch
                     {
                         DelegationState.Requested => "Help requested",
                         DelegationState.Editing => "Desktop is editing",
                         DelegationState.Review => "Proposal ready for review",
-                        DelegationState.Accepted => "Accepted. Reset before a new task",
                         DelegationState.Rejected => "Rejected. Desktop can revise and resubmit",
                         _ => "Task in progress"
                     };
