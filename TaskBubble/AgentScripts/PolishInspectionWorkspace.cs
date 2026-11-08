@@ -29,6 +29,28 @@ public static class PolishInspectionWorkspace
   Save(s);return new{detailRenderersBefore=before,detailRenderersAfter=after};
  }
  static TMP_Text Label(Transform parent,string name,string value,Vector3 position,Vector2 size,float fontSize){var g=new GameObject(name,typeof(TextMeshPro));g.transform.SetParent(parent,false);g.transform.localPosition=position;var t=g.GetComponent<TextMeshPro>();t.font=TMP_Settings.defaultFontAsset;t.text=value;t.fontSize=fontSize;t.color=Hex("#D9E3E5");t.alignment=TextAlignmentOptions.Center;t.rectTransform.sizeDelta=size;t.textWrappingMode=TextWrappingModes.NoWrap;t.raycastTarget=false;g.layer=2;return t;}
+ public static object Gloves(){if(Application.isPlaying)throw new InvalidOperationException("Leave Play Mode first.");const string folder="Assets/TaskBubble/VR/Hands";var rig=PrefabUtility.LoadPrefabContents("Assets/TaskBubble/VR/PcVrRig.prefab");
+  try{foreach(var renderer in rig.GetComponentsInChildren<SkinnedMeshRenderer>(true)){
+   // Derive handedness from the tracking component rather than model naming conventions.
+   var events=renderer.GetComponentInParent<UnityEngine.XR.Hands.XRHandTrackingEvents>(true);string side=events.handedness==UnityEngine.XR.Hands.Handedness.Left?"Left":"Right";
+   string path=folder+"/"+side+"Glove.png";if(File.Exists(path))throw new InvalidOperationException("Glove texture already exists.");
+   var mesh=renderer.sharedMesh;var uv=mesh.uv;var triangles=mesh.triangles;var weights=mesh.boneWeights;var normals=mesh.normals;var wrist=renderer.GetComponentInParent<UnityEngine.XR.Hands.XRHandSkeletonDriver>(true).rootTransform;
+   var masks=new float[uv.Length];
+   for(int i=0;i<masks.Length;i++){
+    var w=weights[i];float Skin(int bone,float weight){string name=renderer.bones[bone].name;bool tip=name.Contains("Distal")||name.Contains("Tip");var normal=wrist.InverseTransformDirection(renderer.transform.TransformDirection(normals[i]));bool palm=(name.Contains("Wrist")||name.Contains("Palm"))&&normal.y<-.25f;return weight*(tip?1f:palm?.9f:0f);}
+    masks[i]=Skin(w.boneIndex0,w.weight0)+Skin(w.boneIndex1,w.weight1)+Skin(w.boneIndex2,w.weight2)+Skin(w.boneIndex3,w.weight3);
+   }
+   const int size=512;var pixels=new Color[size*size];var cloth=Hex("#98A3AA");var rubber=Hex("#303C43");
+   Color Fabric(int x,int y,float mask){float weave=((x/2+y/2)%2==0?.055f:-.035f)+Mathf.PerlinNoise(x*.75f,y*.75f)*.025f;var c=Color.Lerp(cloth,rubber,Mathf.SmoothStep(0,1,mask));return new Color(c.r+weave,c.g+weave,c.b+weave,1);}
+   for(int y=0;y<size;y++)for(int x=0;x<size;x++)pixels[y*size+x]=Fabric(x,y,0);
+   for(int i=0;i<triangles.Length;i+=3){int ia=triangles[i],ib=triangles[i+1],ic=triangles[i+2];var a=uv[ia]*(size-1);var b=uv[ib]*(size-1);var c=uv[ic]*(size-1);float area=(b.y-c.y)*(a.x-c.x)+(c.x-b.x)*(a.y-c.y);if(Mathf.Abs(area)<.0001f)continue;
+    int x0=Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(a.x,Mathf.Min(b.x,c.x))),0,size-1),x1=Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(a.x,Mathf.Max(b.x,c.x))),0,size-1);int y0=Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(a.y,Mathf.Min(b.y,c.y))),0,size-1),y1=Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(a.y,Mathf.Max(b.y,c.y))),0,size-1);
+    for(int y=y0;y<=y1;y++)for(int x=x0;x<=x1;x++){float wa=((b.y-c.y)*(x-c.x)+(c.x-b.x)*(y-c.y))/area,wb=((c.y-a.y)*(x-c.x)+(a.x-c.x)*(y-c.y))/area,wc=1-wa-wb;if(wa>=-.005f&&wb>=-.005f&&wc>=-.005f)pixels[y*size+x]=Fabric(x,y,wa*masks[ia]+wb*masks[ib]+wc*masks[ic]);}
+   }
+   var texture=new Texture2D(size,size,TextureFormat.RGB24,false);texture.SetPixels(pixels);texture.Apply();File.WriteAllBytes(path,texture.EncodeToPNG());UnityEngine.Object.DestroyImmediate(texture);AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceSynchronousImport);var importer=(TextureImporter)AssetImporter.GetAtPath(path);importer.mipmapEnabled=true;importer.anisoLevel=2;importer.maxTextureSize=512;importer.textureCompression=TextureImporterCompression.Compressed;importer.SaveAndReimport();
+   var material=new Material(Shader.Find("Universal Render Pipeline/Lit")){name=side+" Work Glove"};material.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(path));material.SetColor("_BaseColor",Color.white);material.SetFloat("_Smoothness",.12f);material.SetFloat("_Metallic",0);AssetDatabase.CreateAsset(material,folder+"/"+side+"Glove.mat");renderer.sharedMaterial=material;
+  }PrefabUtility.SaveAsPrefabAsset(rig,"Assets/TaskBubble/VR/PcVrRig.prefab");AssetDatabase.SaveAssets();return new{hands=2,textureSize=512,newRenderers=0};}finally{PrefabUtility.UnloadPrefabContents(rig);}
+ }
  public static object Room(){var s=Scene();var env=s.GetRootGameObjects().Single(g=>g.name=="Environment").transform;if(env.Find("Workshop Details")!=null)throw new InvalidOperationException("Room already polished.");
   var wall=Mat("WorkshopWall","#9AA8AE",0,.18f);var concrete=Mat("ConcreteFloor","#656D71",0,.1f);var dark=Mat("WorkbenchGraphite","#222D35",.45f,.28f);var yellow=Mat("SafetyYellow","#E9B93E",.05f,.25f);var steel=Mat("BrushedSteel","#8D9AA3",.72f,.42f);var cabinet=Mat("CabinetBlue","#3B5967",.3f,.25f);var seam=Mat("FloorSeams","#414A4F",0,.1f);var lamp=Mat("FixtureDiffuser","#DCE8EC",0,.1f);lamp.EnableKeyword("_EMISSION");lamp.SetColor("_EmissionColor",Hex("#DCE8EC")*1.25f);
   env.Find("Floor").GetComponent<Renderer>().sharedMaterial=concrete;env.Find("Back Wall").GetComponent<Renderer>().sharedMaterial=wall;

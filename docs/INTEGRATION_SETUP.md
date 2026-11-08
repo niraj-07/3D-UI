@@ -46,3 +46,19 @@ The first checkpoint passed fifteen simulated XR lifecycle checks, and the user 
 The shared workflow passed twenty-two checks with two real local Netcode peers on isolated UDP port 17781, using the actual prefabs, button events and slider changes. Checks covered A and B delegation, automatic Editing, per-part limits and close-ups, real-part immobility while proposing, ghost geometry/pose switching, submit locking, reject, accept on both peers, reset to the original poses, and disconnect cleanup. Eleven additional checks verified MainScene's saved references, actual scene NetworkObject spawn, desktop role/UI visibility and XR staying stopped on the host. Desktop and VR panel layouts were rendered, and review ray hitboxes matched their resolved layout.
 
 These are same-Editor peer checks, not a complete Quest-to-Windows test. Ghost rendering, the integrated review controls in the physical headset, standalone input support and separate-process scene synchronization still need verification with the new build.
+
+## Workshop appearance
+
+Style: a clean manufacturing inspection station, with the gripper as the focus.
+Palette: concrete `#656D71`, wall panels `#9AA8AE`, graphite `#222D35`, steel `#8D9AA3`, cabinet blue `#3B5967`, safety yellow `#E9B93E`.
+Lighting: warm overhead task light with cooler fill and gradient ambient lighting. The scene keeps two lights; only the key casts shadows. No post-processing or extra realtime lights were added.
+
+The bench has metal edge trim, fasteners, feet, a lower shelf, and an inspection mat. Wall panels, floor joints and safety lines, a tooling cabinet, a component bin, a station sign, and ceiling fixtures give the room context. Decorative geometry has no colliders and uses Ignore Raycast. Static details are consolidated by material: 82 primitive mesh renderers became 12, plus the three small text labels. The CAD root is raised 4 mm to rest on the mat; editable local pivots, IDs, limits, and the 70-degree demo pose are unchanged.
+
+Hands use the existing skinned meshes with generated 512x512 woven glove textures and darker grip areas. Both textures have mipmaps and compression. No hand geometry, tracking logic, input bindings, or network behavior changed in this visual pass.
+
+`AgentScripts/PolishInspectionWorkspace.cs` authors this through Unity APIs. The one-time order on an unpolished MainScene is `Workbench`, `Room`, `FinishRoom`, then `Gloves`. It requires Edit Mode and a saved MainScene; the hand step edits the rig prefab. The script is an authoring tool, not a runtime dependency.
+
+Visual review from headset height: palette 4/5, consistent style 3/5, lighting depth 3/5, and CAD silhouette/readability 4/5. UI and interaction feedback were outside this visual pass. The ceiling was added during the review pass to close the initial empty overhead view. Fifteen Play Mode checks passed, covering the light/renderer budget, decorative colliders, CAD configuration, hand joints, texture assignments, tracking-loss visibility, and advancing frames. Physical Air Link frame rate and hand appearance still need a headset check.
+
+The pass used the Unity craft skill's art-direction, scene-lighting, and visual-scorecard references, plus Unity Pipeline. Gradient ambient behavior was checked against [Unity's ambientMode documentation](https://docs.unity3d.com/6000.6/Documentation/ScriptReference/RenderSettings-ambientMode.html). Global post-processing and additional shadows were deliberately omitted because this project already encountered VR performance limits.
