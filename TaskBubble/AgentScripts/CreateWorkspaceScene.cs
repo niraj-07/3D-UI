@@ -84,7 +84,7 @@ public static class CreateWorkspaceScene
             var scaler = preview.GetComponent<UnityEngine.UI.CanvasScaler>();
             scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280, 720); scaler.matchWidthOrHeight = .5f;
-            var status = Text(preview.transform, "PreviewStatus", "Connect Quest Link or Air Link, then preview. Esc returns to desktop.", 18);
+            var status = Text(preview.transform, "PreviewStatus", string.Empty, 18);
             status.rectTransform.anchorMin = status.rectTransform.anchorMax = Vector2.one;
             status.rectTransform.pivot = Vector2.one; status.rectTransform.anchoredPosition = new Vector2(-24, -24);
             status.rectTransform.sizeDelta = new Vector2(550, 72); status.alignment = TextAlignmentOptions.TopRight;

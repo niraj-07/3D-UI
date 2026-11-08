@@ -81,9 +81,7 @@ namespace TaskBubble.Integration
                 rect.anchoredPosition = IsDesktop ? new Vector2(-24, -80) : new Vector2(-24, 24);
                 rect.sizeDelta = IsDesktop ? new Vector2(160, 44) : new Vector2(300, 50);
             }
-            if (previewStatus != null)
-                previewStatus.text = IsDesktop ? "Desktop host ready. Delegate a fingertip from VR." :
-                    "Connect Quest Link or Air Link, then preview. Esc returns to desktop.";
+            if (previewStatus != null) previewStatus.text = string.Empty;
         }
 
         private void SetDesktopFrameLimit(bool apply)
@@ -172,7 +170,7 @@ namespace TaskBubble.Integration
                 selection.PartSelectionEnabled = true;
             }
             RefreshPanels();
-            if (previewStatus != null) previewStatus.text = "Headset view active. Press Esc on the PC to return.";
+            if (previewStatus != null) previewStatus.text = string.Empty;
         }
 
         public void ReturnToDesktop()
