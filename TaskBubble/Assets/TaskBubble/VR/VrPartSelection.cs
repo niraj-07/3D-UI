@@ -16,8 +16,10 @@ namespace TaskBubble.VR
             public LineRenderer line;
             public bool left;
             public bool hand;
-            [NonSerialized] public InputAction press, tracked, trackingState, aimFlags;
+            [NonSerialized] public InputAction press, tracked, trackingState, aimFlags, menu;
             [NonSerialized] public bool valid, wasActive, wasPressed, armed;
+            [NonSerialized] public bool menuWasPressed, menuArmed;
+            [NonSerialized] public float lastMenuTap = -100f;
         }
 
         [SerializeField] private Transform assemblyRoot;
@@ -40,6 +42,7 @@ namespace TaskBubble.VR
 
         public EditablePart SelectedPart { get; private set; }
         public event Action<EditablePart> SelectionChanged;
+        public event Action MenuToggleRequested;
         public bool InteractionEnabled
         {
             get => interactionEnabled;
@@ -66,7 +69,10 @@ namespace TaskBubble.VR
                 p.tracked = new InputAction("Tracked", InputActionType.Button, device + "/isTracked");
                 p.trackingState = new InputAction("Tracking state", InputActionType.Value, device + "/trackingState");
                 p.aimFlags = new InputAction("Hand aim flags", InputActionType.Value, p.hand ? device + "/aimFlags" : null);
+                p.menu = new InputAction("Toggle menus", InputActionType.Button,
+                    p.left ? device + (p.hand ? "/middlePressed" : "/secondaryButton") : null);
                 p.press.Enable(); p.tracked.Enable(); p.trackingState.Enable(); p.aimFlags.Enable();
+                p.menu.Enable(); p.menuWasPressed = p.menuArmed = false; p.lastMenuTap = -100f;
                 p.wasActive = p.wasPressed = p.armed = false;
             }
         }
@@ -95,21 +101,23 @@ namespace TaskBubble.VR
                         if (other.hand && other.left == p.left && other.valid) active = false;
                 bool pressed = p.press.IsPressed();
                 if (p.line != null) p.line.enabled = active;
-                if (!active) { p.wasActive = p.armed = false; p.wasPressed = pressed; continue; }
+                if (!active) { p.wasActive = p.armed = p.menuArmed = false; p.lastMenuTap = -100f; p.wasPressed = pressed; continue; }
                 anyActive = true;
                 // Tracking recovery or a modality switch must not turn an already-held pinch into a click.
                 if (!p.wasActive) p.armed = !pressed;
                 if (!pressed) p.armed = true;
+                bool menuPressed = p.menu.IsPressed();
+                UpdateMenuGesture(p, menuPressed, Time.unscaledTime);
                 var ray = new Ray(p.origin.position, p.origin.forward);
                 TryPoint(ray, out var point, out var part, out var button);
                 if (p.line != null)
                 {
                     p.line.SetPosition(0, ray.origin);
                     p.line.SetPosition(1, point);
-                    p.line.startColor = p.line.endColor = button != null && button.IsInteractable() || IsSelectable(part)
+                    p.line.startColor = p.line.endColor = (button != null && button.IsInteractable()) || (partSelectionEnabled && IsSelectable(part))
                         ? new Color(.3f, 1f, .5f) : selectionColor;
                 }
-                if (pressed && !p.wasPressed && p.armed)
+                if (!menuPressed && pressed && !p.wasPressed && p.armed)
                 {
                     if (button != null)
                     {
@@ -123,6 +131,25 @@ namespace TaskBubble.VR
                 p.wasActive = true; p.wasPressed = pressed;
             }
             if (!anyActive || (!ReferenceEquals(SelectedPart, null) && !IsSelectable(SelectedPart))) ClearSelection();
+        }
+
+        private void UpdateMenuGesture(Pointer p, bool pressed, float now)
+        {
+            if (!p.left) return;
+            if (!p.wasActive) { p.menuArmed = !pressed; p.lastMenuTap = -100f; }
+            if (!pressed) p.menuArmed = true;
+            if (pressed && !p.menuWasPressed && p.menuArmed)
+            {
+                float interval = now - p.lastMenuTap;
+                if (interval >= .08f && interval <= .5f)
+                {
+                    p.lastMenuTap = -100f;
+                    MenuToggleRequested?.Invoke();
+                }
+                else p.lastMenuTap = now;
+                p.menuArmed = false;
+            }
+            p.menuWasPressed = pressed;
         }
 
         private bool TryPoint(Ray ray, out Vector3 point, out EditablePart part, out UnityEngine.UI.Button button)
@@ -194,7 +221,7 @@ namespace TaskBubble.VR
             ClearSelection();
             foreach (var p in pointers)
             {
-                p.press?.Dispose(); p.tracked?.Dispose(); p.trackingState?.Dispose(); p.aimFlags?.Dispose();
+                p.press?.Dispose(); p.tracked?.Dispose(); p.trackingState?.Dispose(); p.aimFlags?.Dispose(); p.menu?.Dispose();
                 if (p.line != null) p.line.enabled = false;
             }
         }

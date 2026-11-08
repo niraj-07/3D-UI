@@ -10,13 +10,13 @@ Windows uses OpenXR with single-pass instanced rendering, the Oculus Touch contr
 
 `PcVrRig.StartVr()` initializes and starts XR explicitly. Call it after Unity's initial Start phase, when VR mode is selected. It activates the tracked objects only after a loader initializes. `StopVr()` deinitializes the loader owned by this rig, and disabling the rig also stops it. Start failure leaves a retry message in `Status`. `IsRunning` means the loader was started; it does not prove that hands or controllers are currently tracked.
 
-During scene integration, assign the rig to the VR participant, disable the desktop camera/audio listener while the VR camera is active, call `StartVr()` after choosing VR, and call `StopVr()` on disconnect. Connection-scene controls are not wired to it yet. The prefab's tracked objects intentionally start inactive. The rig currently shows pointing rays, not controller models or rendered hand meshes.
+MainScene assigns the rig to the VR participant, disables the desktop camera/audio listener while the VR camera is active, and stops VR on disconnect. The prefab's tracked objects intentionally start inactive. The rig shows pointing rays and tracked hand meshes. There are no controller models.
 
 ## Part selection
 
 `VrPartSelection` lives on the rig's `Tracked Objects` object. Assign the scene's CAD assembly to `Assembly Root` in the Inspector or call `SetAssemblyRoot(root)`. The reusable prefab leaves that scene reference empty.
 
-Point at either fingertip and press the controller trigger or pinch the index finger and thumb. Selection turns the fingertip cyan without moving it or editing its shared material. The closest solid collider blocks the ray; colliders resolve their `EditablePart` on a parent. Only configured, enabled parts under the assigned assembly can be selected. Ghosts on Ignore Raycast and the desktop close-up on layer 30 are excluded.
+Point at either fingertip and press the controller trigger or pinch the index finger and thumb. The ray turns green over a selectable part or usable button. Selection turns the fingertip cyan without moving it or editing its shared material. A 12 mm aiming tolerance helps with small fingertips; solid objects still block selection. Buttons also use their visible rectangles, so pointing does not depend solely on thin physics hitboxes. Only configured, enabled parts under the assigned assembly can be selected. Ghosts on Ignore Raycast and the desktop close-up on layer 30 are excluded.
 
 There are four rays: one controller and one hand aim per side. A valid hand aim takes priority over the controller for the same side. Invalid hand aim, hand system/menu gestures and incomplete position/rotation tracking cannot select. After a modality switch, tracking recovery or re-enabling interaction, release a held trigger/pinch before pressing again. Holding a press while aiming at another part does not change selection. A fresh press on empty space or a noneditable object clears it.
 
@@ -32,7 +32,17 @@ Assign the scene's `DelegationSession` and `TaskBubbleConnection` to `VrDelegati
 
 Delegate is available only for a connected VR client with a spawned session, an Idle task and a configured selected part. Pressing it captures that part's ID and calls `RequestDelegation(id)`. The button locks immediately until the host responds. Pending requests and active tasks lock further CAD selection; UI rays stay available. Refused requests show the host's reason and allow a new selection. Reset returning the session to Idle unlocks selection. Disconnect or the desktop role disables interaction. The host remains responsible for authoritative validation.
 
-The panel is built by `AgentScripts/CreateVrDelegationControls.cs`, entry `CreateVrDelegationControls.Build`, which also nests it in the existing rig. It refuses to overwrite existing controls. Existing review prefabs are still separate; to operate their buttons with these rays during integration, give each button a matching box collider on the Button object. UI hitboxes should be in front of other solid colliders. Hand/controller hover animations and rendered hand models are not part of this step.
+The panel is built by `AgentScripts/CreateVrDelegationControls.cs`, entry `CreateVrDelegationControls.Build`, which also nests it in the existing rig. It refuses to overwrite existing controls. MainScene connects both menu roots to the pointer, including their button rectangles and colliders.
+
+## Hands and menus
+
+The rig uses Unity XR Hands' left and right hand meshes, with all 26 joints mapped by `XRHandSkeletonDriver`. `XRHandMeshController` hides a hand when tracking is lost. The meshes have no colliders and cannot block the selection rays. `AgentScripts/AddTrackedHandMeshes.cs` adds this setup; model attribution and license are in `Assets/TaskBubble/VR/Hands`.
+
+In a connected VR session, menus start hidden. On the **left hand**, pinch your middle finger and thumb twice within half a second, releasing between pinches. Both menus appear in front of where you are looking, with their centers 1.3 m apart. Repeat to hide them. Index-finger pinches still select parts and press buttons. With controllers, double-press the left secondary button (Y) instead.
+
+Hiding menus disables their canvases and hitboxes, while keeping task subscriptions and CAD selection alive. Showing them again places them in front of your current view. Disconnecting or leaving VR hides them. Offline Preview in headset shows the model and hands; task menus require a VR network connection.
+
+Verification: seven pointing checks, fifteen hand-rig checks, and fourteen gesture/menu checks passed in the Editor. Hand meshes were rendered with synthetic poses. Physical tracking alignment, pointing feel, and gesture comfort still need a headset check.
 
 ## Link and hands
 
