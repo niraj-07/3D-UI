@@ -21,3 +21,5 @@ The left side shows a close-up through `DesktopPartPreview`, already connected i
 The preview uses a square 640-pixel render texture without stretching, a dedicated camera, and currently unused layer **30**. Reserve that layer for desktop previews and exclude it from the main/VR cameras during scene integration. Its visual stage is kept away from the CAD assembly. No project layers or camera settings are changed automatically. Prepare the CAD part with a correct pivot and consistent scale in task 5; skinned meshes are outside this CAD MVP.
 
 The prefab is not yet placed in the connection scene. Submit and VR decision buttons belong to task 9; scene wiring belongs to task 11.
+
+MainScene now includes this panel with Submit controls and Assembly Root assigned. `WorkspaceView` shows it for the connected desktop role. See `INTEGRATION_SETUP.md` for the current run sequence.

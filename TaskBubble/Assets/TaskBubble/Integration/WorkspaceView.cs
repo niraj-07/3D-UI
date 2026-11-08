@@ -16,6 +16,9 @@ namespace TaskBubble.Integration
         [SerializeField] private GameObject previewPanel;
         [SerializeField] private UnityEngine.UI.Button previewButton;
         [SerializeField] private TMP_Text previewStatus;
+        [SerializeField] private GameObject desktopEditingPanel;
+        [SerializeField] private GameObject vrDelegationPanel;
+        [SerializeField] private GameObject vrReviewPanel;
         private bool startQueued;
         private bool networkVr;
 
@@ -34,9 +37,41 @@ namespace TaskBubble.Integration
             if (connectedVr && !networkVr) startQueued = true;
             else if (!connectedVr && networkVr) ReturnToDesktop();
             networkVr = connectedVr;
+            RefreshPanels();
         }
 
-        public void PreviewInHeadset() => startQueued = true;
+        private bool IsDesktop => connection != null && connection.State == ConnectionState.Connected &&
+            connection.LocalRole == ParticipantRole.Desktop;
+
+        public void PreviewInHeadset()
+        {
+            if (IsDesktop) { connection.Disconnect(); return; }
+            startQueued = true;
+        }
+
+        private void RefreshPanels()
+        {
+            bool running = vrRig != null && vrRig.IsRunning;
+            bool connectedVr = connection != null && connection.State == ConnectionState.Connected &&
+                connection.LocalRole == ParticipantRole.Vr;
+            if (desktopEditingPanel != null) desktopEditingPanel.SetActive(IsDesktop && !running);
+            if (vrDelegationPanel != null) vrDelegationPanel.SetActive(connectedVr && running);
+            if (vrReviewPanel != null) vrReviewPanel.SetActive(connectedVr && running);
+            if (connectionPanel != null) connectionPanel.SetActive(!running && !IsDesktop);
+            if (previewPanel != null) previewPanel.SetActive(!running);
+            if (previewButton != null)
+            {
+                var label = previewButton.GetComponentInChildren<TMP_Text>();
+                if (label != null) label.text = IsDesktop ? "Disconnect" : "Preview in headset";
+                var rect = previewButton.GetComponent<RectTransform>();
+                rect.anchorMin = rect.anchorMax = rect.pivot = IsDesktop ? Vector2.one : new Vector2(1, 0);
+                rect.anchoredPosition = IsDesktop ? new Vector2(-24, -80) : new Vector2(-24, 24);
+                rect.sizeDelta = IsDesktop ? new Vector2(160, 44) : new Vector2(300, 50);
+            }
+            if (previewStatus != null)
+                previewStatus.text = IsDesktop ? "Desktop host ready. Delegate a fingertip from VR." :
+                    "Connect Quest Link or Air Link, then preview. Esc returns to desktop.";
+        }
 
         private void LateUpdate()
         {
@@ -64,14 +99,14 @@ namespace TaskBubble.Integration
             }
             var listener = desktopCamera.GetComponent<AudioListener>();
             if (listener != null) listener.enabled = false;
-            if (connectionPanel != null) connectionPanel.SetActive(false);
-            if (previewPanel != null) previewPanel.SetActive(false);
             var selection = vrRig.GetComponentInChildren<VrPartSelection>(true);
-            if (selection != null)
+            // Offline preview can select locally; a connected session is gated by Delegate controls.
+            if (selection != null && !networkVr)
             {
                 selection.InteractionEnabled = true;
                 selection.PartSelectionEnabled = true;
             }
+            RefreshPanels();
             if (previewStatus != null) previewStatus.text = "Headset view active. Press Esc on the PC to return.";
         }
 
@@ -85,9 +120,7 @@ namespace TaskBubble.Integration
                 var listener = desktopCamera.GetComponent<AudioListener>();
                 if (listener != null) listener.enabled = true;
             }
-            if (connectionPanel != null) connectionPanel.SetActive(true);
-            if (previewPanel != null) previewPanel.SetActive(true);
-            if (previewStatus != null) previewStatus.text = "Connect Quest Link or Air Link, then preview. Esc returns to desktop.";
+            RefreshPanels();
         }
 
         private void OnDisable()

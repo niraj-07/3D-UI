@@ -17,3 +17,5 @@ The component subscribes to the shared session and connection. It automatically 
 The host still owns validation and committed transforms. The ghost sends no network requests and never moves the real part. Its IDs and CAD hierarchy must match the session's part setup.
 
 The binding passed 22 checks using a test mesh and local host/client peers inside one Editor. The rendered proposal, VR-only visibility, live updates, Review, decisions, Reset, mismatch handling, disable/re-enable, and disconnect were checked with zero Console errors or warnings. Main-scene wiring, final CAD geometry, separate builds, and headset rendering remain integration work. Nothing has been added to the Connection scene.
+
+Task 11 now wires the ghost in MainScene and verifies switching between the two CAD fingertips with local Netcode peers. Separate-process builds and physical headset rendering still need verification; see `INTEGRATION_SETUP.md`.
