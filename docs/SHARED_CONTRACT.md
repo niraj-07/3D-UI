@@ -19,11 +19,11 @@ Task 4 must check for missing or duplicate IDs when registering parts and refuse
 
 | Method | Caller | Meaning |
 |---|---|---|
-| `RequestDelegation(string partId)` | VR | Request an edit of that part while Idle. |
+| `RequestDelegation(string partId)` | VR | Request an edit while Idle or after acceptance. |
 | `UpdateProposal(float angleDegrees)` | Desktop | Propose an angle offset from the rotation captured when the task started. |
 | `SubmitProposal()` | Desktop | Freeze the proposal and ask VR to review it. |
 | `AcceptProposal()` | VR | Apply the reviewed proposal to the real part on both clients. |
-| `RejectProposal()` | VR | Discard the proposal and leave the real part unchanged. |
+| `RejectProposal()` | VR | Leave the real part unchanged and return the proposal to desktop for revision. |
 | `ResetTask()` | VR | Restore the original demo rotation and clear the task on both clients. |
 
 `UpdateProposal` takes degrees rather than a Unity `Transform`: the MVP allows rotation on one axis, so position, scale, and other rotation axes are not editable.
@@ -37,16 +37,21 @@ These methods send requests; they do not report synchronous success. The host mu
 | Current state | Valid request | Result |
 |---|---|---|
 | Idle | RequestDelegation | Requested; capture the current committed local rotation and start with angle zero. |
+| Accepted | RequestDelegation | Requested; start a new task from the selected part's current committed rotation. |
 | Requested | UpdateProposal | Editing; calculate and publish the proposal. |
 | Editing | UpdateProposal | Editing; publish the new proposal. |
 | Editing | SubmitProposal | Review; stop accepting adjustments. |
 | Review | AcceptProposal | Accepted; apply the proposal to the committed part. |
-| Review | RejectProposal | Rejected; discard the proposal. |
+| Review | RejectProposal | Rejected; leave the committed part unchanged and allow desktop revision. |
+| Rejected | UpdateProposal | Editing; retain the starting pose and issue a fresh task ID for the retry. |
+| Rejected | SubmitProposal | Review; resubmit the same proposal with a fresh task ID. |
 | Any active or finished task | ResetTask | Idle; restore the original demo pose and clear the task. |
 
-The desktop view can call `UpdateProposal(0f)` when opening a newly requested task to start editing. Do that once on Requested, not on every state update. Submit is valid only in Editing.
+The desktop view can call `UpdateProposal(0f)` when opening a newly requested task to start editing. Do that once on Requested, not on every state update. Submit is valid in Editing or Rejected. After rejection, the desktop slider stays editable and the close-up retains the proposed pose; the VR ghost returns on the next edit or submission. The real part stays unchanged until acceptance.
 
-Keep Accepted/Rejected visible until ResetTask. Reset while Idle is a no-op. All other invalid requests leave the shared state and real part unchanged.
+Rejected remains visible until desktop edits, resubmits, or VR resets. Every retry gets a new task ID, including unchanged resubmissions, so a decision from an earlier review cannot apply to the retry. Reset while Idle is a no-op. All other invalid requests leave the shared state and real part unchanged.
+
+After acceptance, VR selection and Delegate become available again. Selecting the same part or another part starts a new task with angle zero relative to its current committed pose. Reset is optional and restores the original demo pose; it is not required to start a revision.
 
 ## Reading updates
 
@@ -59,7 +64,7 @@ Keep Accepted/Rejected visible until ResetTask. Reset while Idle is a no-op. All
 
 Initialize sessions with `DelegationSnapshot.Idle`, not `default(DelegationSnapshot)`.
 
-Subscribe to `StateChanged`, then read `Current` to draw the initial view. `StateChanged` fires after each authoritative update arrives, including angle changes while the state stays Editing. Unsubscribe when the view is disabled. Show a ghost during Editing/Review and hide it in Idle/Accepted/Rejected.
+Subscribe to `StateChanged`, then read `Current` to draw the initial view. `StateChanged` fires after each authoritative update arrives, including angle changes while the state stays Editing. Unsubscribe when the view is disabled. Show a cyan proposal ghost during Editing/Review and hide it in Idle/Rejected. Accepted briefly shows a green confirmation at the committed pose, then hides; this is local visual feedback and does not change task state.
 
 `OperationRejected` reports a readable reason only to the caller whose request failed. Use it for feedback; do not treat it as a state update.
 
@@ -69,7 +74,7 @@ Task 4 owns serialization and transport. Capture `Current.TaskId` when sending t
 
 `TaskBubble.Networking.DelegationSession` implements the shared interface. During scene integration, add one scene object with `NetworkObject` and `DelegationSession`, assign the scene's `TaskBubbleConnection` and CAD assembly root, and use the same scene on both peers. Keep the session enabled before starting the connection so Netcode spawns it with the scene. It registers the assembly on network spawn; load the assembly before connecting.
 
-Step 2 implements `RequestDelegation`: the host checks the RPC sender's assigned VR role, Idle state, registered part, and starting rotation. It publishes a server-written snapshot with a nonzero task ID and zero angle. Joining clients receive the current snapshot too. Rejected requests notify only their caller. No request moves the real part.
+Step 2 implements `RequestDelegation`: the host checks the RPC sender's assigned VR role, Idle or Accepted state, registered part, and starting rotation. It publishes a server-written snapshot with a nonzero task ID and zero angle. Joining clients receive the current snapshot too. Rejected requests notify only their caller. No request moves the real part.
 
 Step 3 implements `UpdateProposal`: it sends the task ID observed by the caller with the requested angle. The host requires the Desktop role, a matching nonzero task ID, Requested or Editing state, and a valid registered part. It uses the captured starting rotation and the part's local axis and limits to calculate the proposal. Valid updates publish Editing, the new angle, and the proposed local rotation to both peers. Invalid updates leave the snapshot unchanged. Views can use these snapshots for the ghost; the session does not create or move a ghost or the real part.
 
@@ -81,7 +86,7 @@ Task 10's first step implements `AcceptProposal`. The host requires the VR role,
 
 The MVP's one editable part has a separate server-written committed rotation. Rejoining clients receive it, and clearing or respawning the task session does not undo an accepted edit. Each peer applies the rotation before notifying its views of Accepted. Keep the same part ID and CAD hierarchy on both peers.
 
-Task 10's second step implements `RejectProposal`. The host requires the VR role, the current nonzero task ID, and Review state. Rejection publishes Rejected while retaining the reviewed values for feedback. It does not change either real part or the committed rotation, including an earlier accepted edit. Duplicate decisions and further adjustments are refused; Rejected stays visible until Reset.
+Task 10's second step implements `RejectProposal`. The host requires the VR role, the current nonzero task ID, and Review state. Rejection publishes Rejected while retaining the reviewed values for revision. It does not change either real part or the committed rotation, including an earlier accepted edit. Duplicate decisions are refused; desktop adjustments and resubmissions start a retry with a new task ID.
 
 Task 10's final step implements `ResetTask`. The host requires the VR role and a matching task ID. Reset in Idle is a no-op. From an active or finished task, it restores the selected part's original demo rotation, updates the committed pose, and clears the public snapshot to Idle on both peers. Stale resets and unavailable parts leave state and poses unchanged. The reset update includes its restored pose so views observe the part restored before receiving Idle.
 

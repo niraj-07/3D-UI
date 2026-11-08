@@ -44,7 +44,7 @@ namespace TaskBubble.Review
         private bool CanSubmit => session != null && session.IsSpawned &&
             connection != null && connection.State == ConnectionState.Connected &&
             connection.LocalRole == ParticipantRole.Desktop && session.Current.TaskId != 0 &&
-            session.Current.State == DelegationState.Editing;
+            (session.Current.State == DelegationState.Editing || session.Current.State == DelegationState.Rejected);
 
         private void OnStateChanged(DelegationSnapshot snapshot) => Refresh();
         private void OnRejected(string reason) { Refresh(); if (feedback != null) feedback.text = reason; }
@@ -59,8 +59,8 @@ namespace TaskBubble.Review
                     DelegationState.Requested => "Help requested",
                     DelegationState.Editing => "Ready to submit",
                     DelegationState.Review => "Waiting for VR review",
-                    DelegationState.Accepted => "Proposal accepted",
-                    DelegationState.Rejected => "Proposal rejected",
+                    DelegationState.Accepted => "Change accepted",
+                    DelegationState.Rejected => "Rejected. Adjust and resubmit",
                     _ => "No active task"
                 };
         }

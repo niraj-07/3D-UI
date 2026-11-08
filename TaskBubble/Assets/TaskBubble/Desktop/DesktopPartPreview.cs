@@ -38,7 +38,7 @@ namespace TaskBubble.Desktop
             }
             if (renderers.Length == 0) { Clear(); return; }
             model.gameObject.SetActive(true);
-            model.localRotation = snapshot.State == DelegationState.Rejected || snapshot.State == DelegationState.Requested
+            model.localRotation = snapshot.State == DelegationState.Requested
                 ? snapshot.StartingLocalRotation : snapshot.ProposalLocalRotation;
             var center = Bounds().center;
             previewCamera.transform.position = center + new Vector3(1f, 0.7f, -1f).normalized * (radius * 3f);
