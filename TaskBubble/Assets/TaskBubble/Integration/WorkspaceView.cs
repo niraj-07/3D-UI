@@ -123,7 +123,7 @@ namespace TaskBubble.Integration
                     if (forward.sqrMagnitude < .5f) forward = vrRig.transform.forward;
                     var right = Vector3.Cross(Vector3.up, forward);
                     PlaceMenu(vrDelegationPanel, head.transform.position, forward, right, -.85f);
-                    PlaceMenu(vrReviewPanel, head.transform.position, forward, right, 1.05f);
+                    PlaceMenu(vrReviewPanel, head.transform.position, forward, right, 1.30f);
                 }
             }
             RefreshPanels();
