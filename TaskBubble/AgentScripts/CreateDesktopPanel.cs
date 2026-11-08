@@ -101,6 +101,7 @@ public static class CreateDesktopPanel
                 fields.FindProperty(binding.Item1).objectReferenceValue = card.transform.Find(binding.Item2).GetComponent<TMP_Text>();
             fields.ApplyModifiedPropertiesWithoutUndo();
             AddCloseup(root);
+            AddExactAngleInput(root);
 
             if (PrefabUtility.SaveAsPrefabAsset(root, Path) == null)
                 throw new InvalidOperationException("Could not save DesktopPanel prefab.");
@@ -126,6 +127,97 @@ public static class CreateDesktopPanel
         text.textWrappingMode = TextWrappingModes.NoWrap;
         Height(go, height);
         return text;
+    }
+
+    public static string AddExactAngleToExistingPrefab()
+    {
+        if (Application.isPlaying) throw new InvalidOperationException("Leave Play Mode first.");
+        var root = PrefabUtility.LoadPrefabContents(Path);
+        try
+        {
+            if (root.transform.Find("Card/ExactAngle") == null) AddExactAngleInput(root);
+            FitExactAngleLayout(root.transform.Find("Card"));
+            PrefabUtility.SaveAsPrefabAsset(root, Path);
+            return Path;
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void AddExactAngleInput(GameObject root)
+    {
+        var card = root.transform.Find("Card");
+        if (card.Find("ExactAngle") != null)
+            throw new InvalidOperationException("Exact angle input already exists; edit it instead.");
+        var row = new GameObject("ExactAngle", typeof(RectTransform), typeof(UnityEngine.UI.HorizontalLayoutGroup));
+        row.layer = 5;
+        row.transform.SetParent(card, false);
+        row.transform.SetSiblingIndex(card.Find("RotationSlider").GetSiblingIndex());
+        Height(row, 44);
+        var layout = row.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+        layout.spacing = 10;
+        layout.childControlWidth = layout.childControlHeight = true;
+        layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+        var label = Text(row.transform, "Label", "EXACT ANGLE", 14, 44);
+        label.alignment = TextAlignmentOptions.MidlineLeft;
+        var labelSize = label.GetComponent<UnityEngine.UI.LayoutElement>();
+        labelSize.minWidth = labelSize.preferredWidth = 100;
+
+        var resources = new TMP_DefaultControls.Resources
+        {
+            inputField = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/InputFieldBackground.psd")
+        };
+        var inputRoot = TMP_DefaultControls.CreateInputField(resources);
+        inputRoot.name = "Degrees";
+        inputRoot.transform.SetParent(row.transform, false);
+        Height(inputRoot, 44);
+        var inputSize = inputRoot.GetComponent<UnityEngine.UI.LayoutElement>();
+        inputSize.minWidth = 140;
+        inputSize.flexibleWidth = 1;
+        var input = inputRoot.GetComponent<TMP_InputField>();
+        input.contentType = TMP_InputField.ContentType.Standard;
+        input.lineType = TMP_InputField.LineType.SingleLine;
+        input.characterLimit = 24;
+        input.richText = false;
+        input.keyboardType = TouchScreenKeyboardType.NumbersAndPunctuation;
+        input.SetTextWithoutNotify("0");
+        input.interactable = false;
+        input.textComponent.font = TMP_Settings.defaultFontAsset;
+        input.textComponent.fontSize = 22;
+        input.textComponent.alignment = TextAlignmentOptions.MidlineLeft;
+        input.textComponent.color = TextColor;
+        input.textComponent.raycastTarget = false;
+        var placeholder = (TMP_Text)input.placeholder;
+        placeholder.text = "e.g. -12.5";
+        placeholder.font = TMP_Settings.defaultFontAsset;
+        placeholder.fontSize = 18;
+        placeholder.color = new Color(.64f, .73f, .83f);
+        placeholder.raycastTarget = false;
+        inputRoot.GetComponent<UnityEngine.UI.Image>().color = new Color(.10f, .16f, .23f);
+        input.selectionColor = new Color(.08f, .57f, .51f, .6f);
+        var unit = Text(row.transform, "Unit", "\u00b0", 22, 44);
+        unit.alignment = TextAlignmentOptions.MidlineLeft;
+        var unitSize = unit.GetComponent<UnityEngine.UI.LayoutElement>();
+        unitSize.minWidth = unitSize.preferredWidth = 24;
+        var fields = new SerializedObject(root.GetComponent<DesktopEditingPanel>());
+        fields.FindProperty("angleInput").objectReferenceValue = input;
+        fields.ApplyModifiedPropertiesWithoutUndo();
+        FitExactAngleLayout(card);
+    }
+
+    private static void FitExactAngleLayout(Transform card)
+    {
+        // Fit the new row inside the original card so Submit and Disconnect keep their space.
+        var rect = card.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(rect.sizeDelta.x, 400);
+        rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, 0);
+        card.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().spacing = 8;
+        foreach (var size in new[] { ("TaskStatus", 36), ("PartName", 28), ("AngleValue", 44) })
+        {
+            var element = card.Find(size.Item1).GetComponent<UnityEngine.UI.LayoutElement>();
+            element.minHeight = element.preferredHeight = size.Item2;
+        }
+        Canvas.ForceUpdateCanvases();
+        UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
     }
 
     public static string AddCloseupToExistingPrefab()

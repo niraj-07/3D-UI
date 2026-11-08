@@ -1,6 +1,6 @@
 ﻿# TaskBubble — Task List
 
-One CAD assembly, one editable part, and rotation around one axis. Assign tasks later. The tags show which part of the project each task belongs to.
+One CAD assembly, one active delegation at a time, and rotation around each part's configured axis. The tags show which part of the project each task belongs to.
 
 1. **[Setup] Project setup** — Keep Unity and package versions consistent, add Git exclusions, and create the starting scene.
 2. **[Shared] Edit contract** — Define stable part IDs, rotation limits, task states, shared methods, and state-change notifications. Agree on this and merge it before connecting the other parts.
@@ -14,6 +14,48 @@ One CAD assembly, one editable part, and rotation around one axis. Assign tasks 
 10. **[Network] Apply, reject, and reset** — Accept applies the proposal on both clients; Reject discards it. Reset restores the original misalignment and clears the task. Publish the result so both views can show it.
 11. **[Integration] Main scene and builds** — Connect the CAD, VR, desktop, preview, and review prefabs in the main scene. Create VR and desktop builds that start the workflow without Editor changes.
 12. **[Demo] Instructions and submission** — Write short setup/run instructions, record the 3–5 minute demo with code explanations, and submit the repository and video.
+13. **[Desktop/CAD] Precision editing and a second correction** — Add exact angle entry and give the second fingertip a different rotation axis so the demo shows two kinds of correction. See the steps below.
+
+## Task 13 — Precision editing and a second correction
+
+Branch: `task/13-precision-editing-scenarios`
+
+The demo will have two corrections: straighten fingertip A around local Z, then remove a smaller twist from fingertip B around local X. Both use the existing Delegate, ghost, Submit, Reject, Accept, and Reset workflow. These are inspection-demo poses, not a mechanical simulation of the gripper.
+
+### Step 1 — Exact angle entry
+
+Implemented and verified with thirty local network/UI checks. Windows build keyboard/mouse verification remains.
+
+- Add a degrees input beside the desktop slider in `DesktopPanel.prefab`.
+- Typing an angle and pressing Enter or leaving the field sends a proposal through the existing session API.
+- Keep the field and slider in sync without sending duplicate updates. Use the selected part's limits and accept decimal values, including negative angles.
+- Invalid or out-of-range input leaves the proposal unchanged, explains the valid range, and restores the current value. Lock the field under the same conditions as the slider, including during VR review.
+- Check typing, slider changes, rejection/retry, and switching between parts before committing.
+
+Commit: `feat: add exact desktop angle input`
+
+### Step 2 — A different correction on fingertip B
+
+Implemented. Twenty-two checks passed with the actual CAD prefab and two local network peers, including B selection, correction, rejection, acceptance, and independent Reset behavior. Headset-height and oblique before/after captures were reviewed; physical headset verification remains.
+
+- Keep A's existing ID, local Z axis, +70-degree starting pose, and limits.
+- Keep B's existing ID and pivot, change its allowed axis to local X, and start it at +25 degrees with limits of -45 to +45 degrees.
+- Inspect the result from desktop and headset-height views. The twist must be obvious and the part easy to point at; adjust the demo angle if necessary before finalizing it.
+- A first proposal of -25 degrees should align B without moving the body or A. Reset should restore B's initial twist.
+- Update `CreateGripperAssembly` and `CAD_SETUP.md` to match the saved prefab. Keep the enlarged scene instance consistent.
+
+Commit: `feat: add an X-axis fingertip correction scenario`
+
+### Step 3 — Finish the two-part demonstration
+
+- Confirm the desktop displays the correct axis, angle, limits, close-up, and input state when either part is delegated.
+- Run A through reject, revise, and accept; then delegate B and correct it with exact angle entry. Re-delegating an accepted part must still start from its accepted pose.
+- Confirm that proposals only move the ghost, acceptance updates both clients, and Reset restores each selected part's own demo pose.
+- Update the short demo instructions and produce a fresh Windows build for the PC/Quest check. Record any hardware verification still outstanding.
+
+Commit: `docs: describe the two-part precision editing demo` (include integration fixes only if verification finds a concrete issue).
+
+No new model, package, network operation, scenario manager, or movement system is needed. Each part still permits rotation around one configured axis; unrestricted three-axis rotation and position editing are outside this task.
 
 ## Working without stepping on each other
 

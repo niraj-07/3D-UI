@@ -38,7 +38,9 @@ The panel is built by `AgentScripts/CreateVrDelegationControls.cs`, entry `Creat
 
 The rig uses Unity XR Hands' left and right hand meshes, with all 26 joints mapped by `XRHandSkeletonDriver`. `XRHandMeshController` hides a hand when tracking is lost. The meshes have no colliders and cannot block the selection rays. `AgentScripts/AddTrackedHandMeshes.cs` adds this setup; model attribution and license are in `Assets/TaskBubble/VR/Hands`.
 
-In a connected VR session, menus start hidden. On the **left hand**, pinch your middle finger and thumb twice within half a second, releasing between pinches. The menus appear beside your view, with Delegate 0.85 m to the left and review 1.05 m to the right, keeping the center clear for the machine. Repeat to hide them. Index-finger pinches still select parts and press buttons. With controllers, double-press the left secondary button (Y) instead.
+In a connected VR session, menus start hidden. On the **left hand**, pinch your middle finger and thumb twice within half a second, releasing between pinches. The menus appear beside your view, with Delegate 0.85 m to the left and review 1.30 m to the right, keeping the center clear for the machine. Repeat to hide them. Index-finger pinches still select parts and press buttons. With controllers, double-press the left secondary button (Y) instead.
+
+On November 8, the user reported that the headset check looked good and requested more clearance between review controls and the machine. The review panel was moved another 25 cm right. This latest placement still needs a headset check; the Editor was unavailable when it was changed.
 
 Hiding menus disables their canvases and hitboxes, while keeping task subscriptions and CAD selection alive. Showing them again places them in front of your current view. Disconnecting or leaving VR hides them. Offline Preview in headset shows the model and hands; task menus require a VR network connection.
 

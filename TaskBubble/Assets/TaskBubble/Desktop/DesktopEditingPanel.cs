@@ -14,6 +14,7 @@ namespace TaskBubble.Desktop
         [SerializeField] private Transform assemblyRoot;
         private readonly EditablePartRegistry parts = new EditablePartRegistry();
         [SerializeField] private UnityEngine.UI.Slider rotationSlider;
+        [SerializeField] private TMP_InputField angleInput;
         [SerializeField] private TMP_Text taskStatus;
         [SerializeField] private TMP_Text partName;
         [SerializeField] private TMP_Text rotationAxis;
@@ -24,6 +25,7 @@ namespace TaskBubble.Desktop
 
         private bool refreshing;
         private uint startedTaskId;
+        private uint angleEditingTaskId;
 
         private void OnEnable()
         {
@@ -36,6 +38,11 @@ namespace TaskBubble.Desktop
                 return;
             }
             rotationSlider.onValueChanged.AddListener(OnSliderChanged);
+            if (angleInput != null)
+            {
+                angleInput.onSelect.AddListener(OnAngleSelected);
+                angleInput.onEndEdit.AddListener(OnAngleEntered);
+            }
             if (session != null)
             {
                 session.StateChanged += OnStateChanged;
@@ -48,6 +55,11 @@ namespace TaskBubble.Desktop
         private void OnDisable()
         {
             if (rotationSlider != null) rotationSlider.onValueChanged.RemoveListener(OnSliderChanged);
+            if (angleInput != null)
+            {
+                angleInput.onSelect.RemoveListener(OnAngleSelected);
+                angleInput.onEndEdit.RemoveListener(OnAngleEntered);
+            }
             if (session != null)
             {
                 session.StateChanged -= OnStateChanged;
@@ -91,6 +103,14 @@ namespace TaskBubble.Desktop
                     rotationSlider.maxValue = editablePart.MaximumAngleDegrees;
                 }
                 rotationSlider.SetValueWithoutNotify(hasPart ? snapshot.ProposalAngleDegrees : 0f);
+                if (angleInput != null)
+                {
+                    angleInput.interactable = CanEdit(snapshot);
+                    // Preserve unfinished typing only while it still belongs to this editable task.
+                    if (!angleInput.isFocused || !angleInput.interactable || angleEditingTaskId != snapshot.TaskId)
+                        angleInput.SetTextWithoutNotify(hasPart ? AngleText(snapshot.ProposalAngleDegrees) : "");
+                    if (!angleInput.isFocused) angleEditingTaskId = snapshot.TaskId;
+                }
                 taskStatus.text = session == null || connection == null || connection.State != ConnectionState.Connected
                     ? "Disconnected" : snapshot.State.ToString();
                 if (snapshot.TaskId != 0 && !hasPart) taskStatus.text = "Selected part is unavailable";
@@ -128,6 +148,37 @@ namespace TaskBubble.Desktop
             Refresh(session.Current);
             taskStatus.text = reason;
         }
+
+        private void OnAngleSelected(string value) => angleEditingTaskId = session != null ? session.Current.TaskId : 0;
+
+        private void OnAngleEntered(string value)
+        {
+            if (refreshing || !isActiveAndEnabled) return;
+            var snapshot = session != null ? session.Current : DelegationSnapshot.Idle;
+            if (!CanEdit(snapshot) || angleEditingTaskId != snapshot.TaskId || angleInput == null || angleInput.wasCanceled)
+            {
+                Refresh(snapshot);
+                return;
+            }
+            if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float angle) ||
+                !editablePart.IsAngleAllowed(angle))
+            {
+                Refresh(snapshot);
+                angleInput.SetTextWithoutNotify(AngleText(snapshot.ProposalAngleDegrees));
+                taskStatus.text = "Enter an angle from " + Degrees(editablePart.MinimumAngleDegrees) + " to " + Degrees(editablePart.MaximumAngleDegrees) + ".";
+                return;
+            }
+            // Enter followed by focus loss, or unchanged text, must not send the same proposal twice.
+            if (angle.Equals(snapshot.ProposalAngleDegrees))
+            {
+                Refresh(snapshot);
+                angleInput.SetTextWithoutNotify(AngleText(angle));
+                return;
+            }
+            session.UpdateProposal(angle);
+        }
+
+        private static string AngleText(float angle) => angle.ToString("G", CultureInfo.InvariantCulture);
 
         private static string Degrees(float angle) => angle.ToString("0.0", CultureInfo.InvariantCulture) + "\u00b0";
     }
