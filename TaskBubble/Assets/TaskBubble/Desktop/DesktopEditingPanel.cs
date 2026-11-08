@@ -64,7 +64,7 @@ namespace TaskBubble.Desktop
         private bool CanEdit(DelegationSnapshot snapshot) => session != null && session.IsSpawned &&
             connection != null && connection.State == ConnectionState.Connected &&
             connection.LocalRole == ParticipantRole.Desktop && HasPart(snapshot) &&
-            (snapshot.State == DelegationState.Requested || snapshot.State == DelegationState.Editing);
+            (snapshot.State == DelegationState.Requested || snapshot.State == DelegationState.Editing || snapshot.State == DelegationState.Rejected);
 
         private void OnStateChanged(DelegationSnapshot snapshot)
         {

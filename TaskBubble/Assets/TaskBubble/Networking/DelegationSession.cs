@@ -201,12 +201,15 @@ namespace TaskBubble.Networking
                 reason = "Only the connected desktop participant can submit an edit.";
             else if (taskId == 0 || taskId != current.TaskId)
                 reason = "This submission belongs to an old or missing task.";
-            else if (current.State != DelegationState.Editing)
+            else if (current.State != DelegationState.Editing && current.State != DelegationState.Rejected)
                 reason = "Start editing before submitting a proposal for review.";
             else if (!parts.TryGet(current.PartId, out var part) || !part.IsAngleAllowed(current.Angle))
                 reason = "The selected part or proposal is no longer valid.";
+            else if (current.State == DelegationState.Rejected && lastTaskId == uint.MaxValue)
+                reason = "Task IDs are exhausted. Restart the session.";
             else
             {
+                if (current.State == DelegationState.Rejected) current.TaskId = ++lastTaskId;
                 current.State = DelegationState.Review;
                 task.Value = current;
                 return;
@@ -225,14 +228,18 @@ namespace TaskBubble.Networking
                 reason = "Only the connected desktop participant can propose an edit.";
             else if (taskId == 0 || taskId != current.TaskId)
                 reason = "This proposal belongs to an old or missing task.";
-            else if (current.State != DelegationState.Requested && current.State != DelegationState.Editing)
+            else if (current.State != DelegationState.Requested && current.State != DelegationState.Editing && current.State != DelegationState.Rejected)
                 reason = "This task is not accepting adjustments.";
             else if (!parts.TryGet(current.PartId, out var part))
                 reason = "The selected part is missing or has invalid settings.";
             else if (!part.TryGetProposalLocalRotation(current.StartingRotation, angleDegrees, out var rotation))
                 reason = "Enter a finite angle within the selected part's rotation limits.";
+            else if (current.State == DelegationState.Rejected && lastTaskId == uint.MaxValue)
+                reason = "Task IDs are exhausted. Restart the session.";
             else
             {
+                // A retry gets a fresh ID so decisions from the previous review cannot apply to it.
+                if (current.State == DelegationState.Rejected) current.TaskId = ++lastTaskId;
                 current.State = DelegationState.Editing;
                 current.ProposalRotation = rotation;
                 current.Angle = angleDegrees;

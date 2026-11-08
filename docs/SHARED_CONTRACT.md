@@ -23,7 +23,7 @@ Task 4 must check for missing or duplicate IDs when registering parts and refuse
 | `UpdateProposal(float angleDegrees)` | Desktop | Propose an angle offset from the rotation captured when the task started. |
 | `SubmitProposal()` | Desktop | Freeze the proposal and ask VR to review it. |
 | `AcceptProposal()` | VR | Apply the reviewed proposal to the real part on both clients. |
-| `RejectProposal()` | VR | Discard the proposal and leave the real part unchanged. |
+| `RejectProposal()` | VR | Leave the real part unchanged and return the proposal to desktop for revision. |
 | `ResetTask()` | VR | Restore the original demo rotation and clear the task on both clients. |
 
 `UpdateProposal` takes degrees rather than a Unity `Transform`: the MVP allows rotation on one axis, so position, scale, and other rotation axes are not editable.
@@ -42,11 +42,13 @@ These methods send requests; they do not report synchronous success. The host mu
 | Editing | SubmitProposal | Review; stop accepting adjustments. |
 | Review | AcceptProposal | Accepted; apply the proposal to the committed part. |
 | Review | RejectProposal | Rejected; discard the proposal. |
+| Rejected | UpdateProposal | Editing; retain the starting pose and issue a fresh task ID for the retry. |
+| Rejected | SubmitProposal | Review; resubmit the same proposal with a fresh task ID. |
 | Any active or finished task | ResetTask | Idle; restore the original demo pose and clear the task. |
 
-The desktop view can call `UpdateProposal(0f)` when opening a newly requested task to start editing. Do that once on Requested, not on every state update. Submit is valid only in Editing.
+The desktop view can call `UpdateProposal(0f)` when opening a newly requested task to start editing. Do that once on Requested, not on every state update. Submit is valid in Editing or Rejected. After rejection, the desktop slider stays editable and the close-up retains the proposed pose; the VR ghost returns on the next edit or submission. The real part stays unchanged until acceptance.
 
-Keep Accepted/Rejected visible until ResetTask. Reset while Idle is a no-op. All other invalid requests leave the shared state and real part unchanged.
+Rejected remains visible until desktop edits, resubmits, or VR resets. Every retry gets a new task ID, including unchanged resubmissions, so a decision from an earlier review cannot apply to the retry. Reset while Idle is a no-op. All other invalid requests leave the shared state and real part unchanged.
 
 ## Reading updates
 
@@ -81,7 +83,7 @@ Task 10's first step implements `AcceptProposal`. The host requires the VR role,
 
 The MVP's one editable part has a separate server-written committed rotation. Rejoining clients receive it, and clearing or respawning the task session does not undo an accepted edit. Each peer applies the rotation before notifying its views of Accepted. Keep the same part ID and CAD hierarchy on both peers.
 
-Task 10's second step implements `RejectProposal`. The host requires the VR role, the current nonzero task ID, and Review state. Rejection publishes Rejected while retaining the reviewed values for feedback. It does not change either real part or the committed rotation, including an earlier accepted edit. Duplicate decisions and further adjustments are refused; Rejected stays visible until Reset.
+Task 10's second step implements `RejectProposal`. The host requires the VR role, the current nonzero task ID, and Review state. Rejection publishes Rejected while retaining the reviewed values for revision. It does not change either real part or the committed rotation, including an earlier accepted edit. Duplicate decisions are refused; desktop adjustments and resubmissions start a retry with a new task ID.
 
 Task 10's final step implements `ResetTask`. The host requires the VR role and a matching task ID. Reset in Idle is a no-op. From an active or finished task, it restores the selected part's original demo rotation, updates the committed pose, and clears the public snapshot to Idle on both peers. Stale resets and unavailable parts leave state and poses unchanged. The reset update includes its restored pose so views observe the part restored before receiving Idle.
 

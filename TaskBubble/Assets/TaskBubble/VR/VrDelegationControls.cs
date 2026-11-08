@@ -83,7 +83,7 @@ namespace TaskBubble.VR
                         DelegationState.Editing => "Desktop is editing",
                         DelegationState.Review => "Proposal ready for review",
                         DelegationState.Accepted => "Accepted. Reset before a new task",
-                        DelegationState.Rejected => "Rejected. Reset before a new task",
+                        DelegationState.Rejected => "Rejected. Desktop can revise and resubmit",
                         _ => "Task in progress"
                     };
         }
