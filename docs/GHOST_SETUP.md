@@ -10,7 +10,7 @@ The material uses `TaskBubble/Ghost`, a small URP unlit shader with alpha blendi
 
 The copy has no colliders, selection components, or network scripts. It uses the built-in Ignore Raycast layer, casts no shadows, and never changes the real mesh or its materials. Static MeshFilter/MeshRenderer CAD parts are supported.
 
-During scene integration, assign the scene's `DelegationSession`, `TaskBubbleConnection`, and matching `EditablePart` on the PartGhost component. The material is already wired. Keep the component on a separate scene object, outside the CAD assembly's editable geometry.
+During scene integration, assign the scene's `DelegationSession`, `TaskBubbleConnection`, and CAD **Assembly Root** on the PartGhost component. The ghost resolves the current snapshot's part ID and switches geometry when another part is delegated. With no Assembly Root, **Editable Part** retains the earlier fixed-part setup. The material is already wired. Keep the component on a separate scene object, outside the CAD assembly's editable geometry.
 
 The component subscribes to the shared session and connection. It automatically shows the authoritative proposed local rotation only for the connected VR role during Editing and Review. It stays hidden in Idle and Requested, and hides after Accepted, Rejected, Reset, or disconnect. Missing references and mismatched part IDs also hide it. Re-enabling the component reads the current snapshot, so an existing Review proposal appears immediately.
 

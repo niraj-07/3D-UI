@@ -6,7 +6,9 @@ During scene integration, assign these fields on its `DesktopEditingPanel` compo
 
 - **Session:** the scene's `DelegationSession`.
 - **Connection:** the scene's `TaskBubbleConnection`.
-- **Editable Part:** the one editable CAD part, with the same ID and settings on both peers.
+- **Assembly Root:** the CAD assembly containing the registered editable parts. The panel resolves the snapshot's part ID and switches its limits, label and close-up automatically. Both peers need matching IDs and settings.
+
+With no Assembly Root assigned, **Editable Part** still supports the earlier single-part setup. MainScene uses Assembly Root for its two fingertips.
 
 The UI references are already wired inside the prefab. The scene needs one EventSystem with an InputSystemUIInputModule. The prefab has its own Canvas and GraphicRaycaster.
 

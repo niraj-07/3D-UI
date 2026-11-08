@@ -10,12 +10,15 @@ namespace TaskBubble.Preview
         [SerializeField] private DelegationSession session;
         [SerializeField] private TaskBubbleConnection connection;
         [SerializeField] private EditablePart editablePart;
+        [SerializeField] private Transform assemblyRoot;
+        private readonly EditablePartRegistry parts = new EditablePartRegistry();
         private EditablePart source;
         private Transform ghostRoot;
         private bool hasGeometry;
 
         private void OnEnable()
         {
+            if (assemblyRoot != null) parts.Rebuild(assemblyRoot);
             if (session != null) session.StateChanged += OnStateChanged;
             if (connection != null) connection.Changed += Refresh;
             Refresh();
@@ -26,14 +29,14 @@ namespace TaskBubble.Preview
         private void Refresh()
         {
             if (session == null || !session.IsSpawned || connection == null ||
-                connection.State != ConnectionState.Connected || connection.LocalRole != ParticipantRole.Vr ||
-                editablePart == null)
+                connection.State != ConnectionState.Connected || connection.LocalRole != ParticipantRole.Vr)
             {
                 Hide();
                 return;
             }
             var snapshot = session.Current;
-            if (snapshot.TaskId != 0 && snapshot.PartId == editablePart.PartId &&
+            if (assemblyRoot != null) parts.TryGet(snapshot.PartId, out editablePart);
+            if (editablePart != null && snapshot.TaskId != 0 && snapshot.PartId == editablePart.PartId &&
                 (snapshot.State == DelegationState.Editing || snapshot.State == DelegationState.Review))
                 Show(editablePart, snapshot.ProposalLocalRotation);
             else
