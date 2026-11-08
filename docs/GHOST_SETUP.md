@@ -1,31 +1,15 @@
-# Part ghost
+# Ghost preview
 
-Prefab: `Assets/TaskBubble/Preview/PartGhost.prefab`. Its cyan transparent material is already assigned.
+MainScene contains `Assets/TaskBubble/Preview/PartGhost.prefab`, with its session, connection, assembly root, and headset camera references assigned.
 
-The material uses `TaskBubble/Ghost`, a small URP unlit shader with alpha blending and no depth writes. A raster depth bias prevents striped z-fighting where real and proposed faces coincide. It does not move vertices or change the proposed transform. The shader includes Unity's stereo/instancing macros; headset rendering still needs hardware verification.
+During **Editing** and **Review**, the connected VR participant sees the authoritative proposal as a cyan ghost. The real component stays in place. The ghost resolves the task's part ID and uses that part's parent space, pivot, local position, scale, and child transforms.
 
-`PartGhost.Show(editablePart, proposedLocalRotation)` creates mesh-only visuals at the proposed rotation. It keeps the real part's parent space, local position, scale, and child transforms, so it rotates around the same pivot. It returns false and hides the ghost for missing/invalid inputs or a part without static meshes.
+`PartGhost.Show(editablePart, proposedLocalRotation)` creates mesh-only visuals and reuses them for later updates. `Hide()` hides the copy. Disabling the component removes the temporary geometry. Static `MeshFilter`/`MeshRenderer` parts are supported.
 
-`Hide()` hides the copy without changing the real part. Repeated updates reuse the same visual hierarchy. Disabling the component removes that hierarchy.
-
-The copy has no colliders, selection components, or network scripts. It uses the built-in Ignore Raycast layer, casts no shadows, and never changes the real mesh or its materials. Static MeshFilter/MeshRenderer CAD parts are supported.
-
-During scene integration, assign the scene's `DelegationSession`, `TaskBubbleConnection`, and CAD **Assembly Root** on the PartGhost component. The ghost resolves the current snapshot's part ID and switches geometry when another part is delegated. With no Assembly Root, **Editable Part** retains the earlier fixed-part setup. The material is already wired. Keep the component on a separate scene object, outside the CAD assembly's editable geometry.
-
-The component subscribes to the shared session and connection. It shows the authoritative proposed local rotation in cyan for the connected VR role during Editing and Review. Acceptance briefly reuses that geometry as a green confirmation at the committed pose, then hides it. Idle, Requested, Rejected, Reset, disconnect, missing references, and mismatched part IDs hide it. Re-enabling the component reads the current snapshot, so an existing Review proposal appears immediately.
-
-The host still owns validation and committed transforms. The ghost sends no network requests and never moves the real part. Its IDs and CAD hierarchy must match the session's part setup.
-
-The binding passed 22 checks using a test mesh and local host/client peers inside one Editor. The rendered proposal, VR-only visibility, live updates, Review, decisions, Reset, mismatch handling, disable/re-enable, and disconnect were checked with zero Console errors or warnings. Main-scene wiring, final CAD geometry, separate builds, and headset rendering remain integration work. Nothing has been added to the Connection scene.
-
-Task 11 now wires the ghost in MainScene and verifies switching between the two CAD fingertips with local Netcode peers. Separate-process builds and physical headset rendering still need verification; see `INTEGRATION_SETUP.md`.
+The ghost has no colliders or network scripts, uses Ignore Raycast, and casts no shadows. It does not change the source meshes or materials. `TaskBubble/Ghost` is a transparent URP unlit shader with stereo/instancing support and a depth bias to reduce z-fighting where proposed and real faces coincide.
 
 ## Acceptance feedback
 
-An accepted edit gets a green highlight that fades over 1.6 seconds, plus a dark badge reading **Change accepted** above the corrected part. The badge faces the assigned headset camera and works while the task menus are hidden. Only an authoritative Accepted snapshot triggers it, once per task ID. Both visuals use Ignore Raycast and have no colliders. Input stays available throughout.
+An authoritative Accepted update shows a green highlight fading over 1.6 seconds and a **Change accepted** badge above the corrected part. The badge faces the headset camera and remains visible when menus are hidden. Feedback triggers once per task ID and uses unscaled time.
 
-The highlight uses a property block on the reused ghost geometry. It does not change the real part's material, its selection highlight, or the shared cyan ghost material. The next proposal restores the normal cyan preview. Reset, a new task, disconnect, and disabling the component clear feedback. Timers use unscaled time.
-
-`CreatePartGhost.AddApprovalFeedback` adds the badge to the existing prefab and assigns the headset camera in a saved MainScene. No audio, particles, camera motion, extra lights, or runtime manager were added. The UI feedback text on both peers also reads Change accepted.
-
-Nineteen checks passed with two local Netcode peers, including authoritative acceptance, matching committed pose, geometry reuse, green tint/fade, duplicate-event suppression, expiry, original-material preservation, next-proposal tint, badge visibility, and Reset cleanup. A capture on the actual gripper confirmed readability. Scoped visual review: feedback visibility 4/5; its green/dark palette matches the existing interface. The pass used the Unity craft game-feel reference and Unity Pipeline. Headset comfort and appearance still need physical verification.
+The highlight uses a renderer property block on the ghost geometry. It preserves the real part's material and selection highlight; the next proposal restores cyan. Reset, a new task, disconnect, or disabling the component clears feedback. Rejected proposals hide the VR ghost until the next edit or resubmission.

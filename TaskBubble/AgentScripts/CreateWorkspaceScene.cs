@@ -74,7 +74,7 @@ public static class CreateWorkspaceScene
 
             var rig = Instantiate("Assets/TaskBubble/VR/PcVrRig.prefab");
             rig.GetComponentInChildren<VrPartSelection>(true).SetAssemblyRoot(cad.transform);
-            // Step 1 is local selection only; network delegation and review are wired next.
+            // Creates the base scene; WireWorkspaceWorkflow adds networking and review controls.
             rig.GetComponentInChildren<VrDelegationControls>(true).gameObject.SetActive(false);
 
             var preview = new GameObject("Headset Preview", typeof(RectTransform), typeof(Canvas),

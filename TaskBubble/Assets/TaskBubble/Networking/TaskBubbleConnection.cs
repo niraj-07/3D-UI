@@ -128,7 +128,7 @@ namespace TaskBubble.Networking
             if (!networkManager.ShutdownInProgress) networkManager.Shutdown();
         }
 
-        // Task 4 must call this on the host using the RPC sender's client ID.
+        // Resolve permissions on the host using the RPC sender's client ID.
         // Pending approvals, disconnected clients, and client-side lookups cannot grant permissions.
         public bool TryGetRole(ulong clientId, out ParticipantRole role)
         {

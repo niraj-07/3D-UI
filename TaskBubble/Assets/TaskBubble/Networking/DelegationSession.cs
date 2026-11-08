@@ -15,7 +15,7 @@ namespace TaskBubble.Networking
 
         private readonly EditablePartRegistry parts = new EditablePartRegistry();
         private readonly Dictionary<string, Quaternion> originalRotations = new Dictionary<string, Quaternion>(StringComparer.Ordinal);
-        // The MVP has one editable part. Keep its committed pose across task cleanup/reconnects.
+        // Retains the latest committed part only; fresh joins do not recover the whole assembly.
         private readonly NetworkVariable<CommittedPose> committedPose = new NetworkVariable<CommittedPose>(
             new CommittedPose { PartId = "", Rotation = Quaternion.identity });
         private readonly NetworkVariable<TaskState> task = new NetworkVariable<TaskState>(
