@@ -13,3 +13,15 @@
 *.user
 *.pidb
 *.suo
+
+# Local CAD source documents; the converted models are committed.
+TaskBubble/Assets/CAD model/*.step
+TaskBubble/Assets/CAD model/*.step.meta
+TaskBubble/Assets/CAD model/*.FCStd
+TaskBubble/Assets/CAD model/*.FCStd.meta
+
+# Editor recovery and local OpenXR preferences.
+TaskBubble/Assets/_Recovery/
+TaskBubble/Assets/_Recovery.meta
+TaskBubble/Assets/XR/Settings/OpenXR Editor Settings.asset
+TaskBubble/Assets/XR/Settings/OpenXR Editor Settings.asset.meta
