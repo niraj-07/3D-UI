@@ -24,6 +24,8 @@ The demo will have two corrections: straighten fingertip A around local Z, then 
 
 ### Step 1 — Exact angle entry
 
+Implemented and verified with thirty local network/UI checks. Windows build keyboard/mouse verification remains.
+
 - Add a degrees input beside the desktop slider in `DesktopPanel.prefab`.
 - Typing an angle and pressing Enter or leaving the field sends a proposal through the existing session API.
 - Keep the field and slider in sync without sending duplicate updates. Use the selected part's limits and accept decimal values, including negative angles.
