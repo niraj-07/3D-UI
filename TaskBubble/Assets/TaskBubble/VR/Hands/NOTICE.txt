@@ -1,0 +1,1 @@
+LeftHand.fbx and RightHand.fbx are from Unity XR Hands 1.10.0, Hand Visualizer sample. Copyright Unity Technologies. See the accompanying Unity license.

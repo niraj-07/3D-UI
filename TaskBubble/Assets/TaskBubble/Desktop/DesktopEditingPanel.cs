@@ -11,6 +11,8 @@ namespace TaskBubble.Desktop
         [SerializeField] private DelegationSession session;
         [SerializeField] private TaskBubbleConnection connection;
         [SerializeField] private EditablePart editablePart;
+        [SerializeField] private Transform assemblyRoot;
+        private readonly EditablePartRegistry parts = new EditablePartRegistry();
         [SerializeField] private UnityEngine.UI.Slider rotationSlider;
         [SerializeField] private TMP_Text taskStatus;
         [SerializeField] private TMP_Text partName;
@@ -25,6 +27,7 @@ namespace TaskBubble.Desktop
 
         private void OnEnable()
         {
+            if (assemblyRoot != null) parts.Rebuild(assemblyRoot);
             if (rotationSlider == null || taskStatus == null || partName == null || rotationAxis == null ||
                 angleValue == null || minimumAngle == null || maximumAngle == null)
             {
@@ -65,6 +68,7 @@ namespace TaskBubble.Desktop
 
         private void OnStateChanged(DelegationSnapshot snapshot)
         {
+            if (assemblyRoot != null) parts.TryGet(snapshot.PartId, out editablePart);
             Refresh(snapshot);
             if (CanEdit(snapshot) && snapshot.State == DelegationState.Requested && startedTaskId != snapshot.TaskId)
             {
@@ -90,7 +94,7 @@ namespace TaskBubble.Desktop
                 taskStatus.text = session == null || connection == null || connection.State != ConnectionState.Connected
                     ? "Disconnected" : snapshot.State.ToString();
                 if (snapshot.TaskId != 0 && !hasPart) taskStatus.text = "Selected part is unavailable";
-                partName.text = hasPart ? editablePart.name : "No part selected";
+                partName.text = hasPart ? editablePart.name.Replace('_', ' ') : "No part selected";
                 rotationAxis.text = hasPart ? "LOCAL " + editablePart.RotationAxis + " ROTATION" : "ROTATION";
                 angleValue.text = Degrees(hasPart ? snapshot.ProposalAngleDegrees : 0f);
                 minimumAngle.text = hasPart ? Degrees(editablePart.MinimumAngleDegrees) : "";

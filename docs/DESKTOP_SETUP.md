@@ -6,7 +6,9 @@ During scene integration, assign these fields on its `DesktopEditingPanel` compo
 
 - **Session:** the scene's `DelegationSession`.
 - **Connection:** the scene's `TaskBubbleConnection`.
-- **Editable Part:** the one editable CAD part, with the same ID and settings on both peers.
+- **Assembly Root:** the CAD assembly containing the registered editable parts. The panel resolves the snapshot's part ID and switches its limits, label and close-up automatically. Both peers need matching IDs and settings.
+
+With no Assembly Root assigned, **Editable Part** still supports the earlier single-part setup. MainScene uses Assembly Root for its two fingertips.
 
 The UI references are already wired inside the prefab. The scene needs one EventSystem with an InputSystemUIInputModule. The prefab has its own Canvas and GraphicRaycaster.
 
@@ -19,3 +21,5 @@ The left side shows a close-up through `DesktopPartPreview`, already connected i
 The preview uses a square 640-pixel render texture without stretching, a dedicated camera, and currently unused layer **30**. Reserve that layer for desktop previews and exclude it from the main/VR cameras during scene integration. Its visual stage is kept away from the CAD assembly. No project layers or camera settings are changed automatically. Prepare the CAD part with a correct pivot and consistent scale in task 5; skinned meshes are outside this CAD MVP.
 
 The prefab is not yet placed in the connection scene. Submit and VR decision buttons belong to task 9; scene wiring belongs to task 11.
+
+MainScene now includes this panel with Submit controls and Assembly Root assigned. `WorkspaceView` shows it for the connected desktop role. See `INTEGRATION_SETUP.md` for the current run sequence.
